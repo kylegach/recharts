@@ -1,5 +1,5 @@
 import React from 'react';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { LineChart, Tooltip } from '../../../src';
 import { TooltipSettingsState } from '../../../src/state/tooltipSlice';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
@@ -13,8 +13,8 @@ describe('Tooltip state integration', () => {
       </LineChart>
     ));
 
-    test('should publish its settings to Redux store', () => {
-      const { spy } = renderTestCase(state => state.tooltip.settings);
+    test('should publish its settings to Redux store', async () => {
+      const { spy } = await renderTestCase(state => state.tooltip.settings);
       const expected: TooltipSettingsState = {
         axisId: 'my-axis-id',
         shared: true,
@@ -34,8 +34,8 @@ describe('Tooltip state integration', () => {
       </LineChart>
     ));
 
-    test('should publish its settings to Redux store', () => {
-      const { spy } = renderTestCase(state => state.tooltip.settings);
+    test('should publish its settings to Redux store', async () => {
+      const { spy } = await renderTestCase(state => state.tooltip.settings);
       const expected: TooltipSettingsState = {
         active: undefined,
         axisId: 0,
@@ -54,8 +54,8 @@ describe('Tooltip state integration', () => {
       </LineChart>
     ));
 
-    test('should read initial settings from Redux store', () => {
-      const { spy } = renderTestCase(state => state.tooltip.settings);
+    test('should read initial settings from Redux store', async () => {
+      const { spy } = await renderTestCase(state => state.tooltip.settings);
       const expected: TooltipSettingsState = {
         active: false,
         axisId: 0,

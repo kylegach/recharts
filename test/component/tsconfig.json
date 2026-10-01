@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "include": [
+    "./**/*",
+    "../helper/browser/**/*",
+    "../../types.d.ts",
+    "../helper/toBeRechartsScale.ts",
+    "../helper/expectStackGroups.ts",
+    "../helper/expectFunctionReturning.ts"
+  ],
+  /* The jsdom tests use this helper. It is type checked by ../tsconfig.json. */
+  "exclude": ["./Tooltip/tooltipTestHelpers.tsx"]
+}

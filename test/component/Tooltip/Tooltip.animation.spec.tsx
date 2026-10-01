@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { Line, LineChart, Tooltip } from '../../../src';
 import {
   expectTooltipCoordinate,
@@ -8,7 +8,7 @@ import {
   getTooltip,
   hideTooltip,
   showTooltipOnCoordinate,
-} from './tooltipTestHelpers';
+} from '../../helper/browser/tooltipTestHelpers';
 import { lineChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { selectIsTooltipActive } from '../../../src/state/selectors/selectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
@@ -39,33 +39,35 @@ describe('Tooltip animation', () => {
     ));
 
     describe('when tooltip is displayed first time', () => {
-      function prime(container: Element) {
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+      async function prime(container: Element) {
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 20,
           clientY: 20,
         });
       }
 
-      it('should select isActive: true', () => {
-        const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+      it('should select isActive: true', async () => {
+        const { container, spy } = await renderTestCase(state =>
+          selectIsTooltipActive(state, 'axis', 'hover', undefined),
+        );
         expectLastCalledWith(spy, { activeIndex: null, isActive: false });
-        prime(container);
+        await prime(container);
         expectLastCalledWith(spy, { activeIndex: '0', isActive: true });
       });
 
-      it('should animate towards the final position', () => {
-        const { container } = renderTestCase();
-        prime(container);
+      it('should animate towards the final position', async () => {
+        const { container } = await renderTestCase();
+        await prime(container);
 
-        expectTooltipCoordinate(container, {
+        await expectTooltipCoordinate(container, {
           x: 15,
           y: 30,
         });
       });
 
-      it('should start at 0,0', () => {
-        const { container } = renderTestCase();
-        prime(container);
+      it('should start at 0,0', async () => {
+        const { container } = await renderTestCase();
+        await prime(container);
 
         const tooltip = getTooltip(container);
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
@@ -79,25 +81,25 @@ describe('Tooltip animation', () => {
     });
 
     describe('when tooltip hides, and then shows again', () => {
-      function prime(container: Element) {
-        expectTooltipNotVisible(container);
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+      async function prime(container: Element) {
+        await expectTooltipNotVisible(container);
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 20,
           clientY: 20,
         });
-        hideTooltip(container, lineChartMouseHoverTooltipSelector);
-        expectTooltipNotVisible(container);
+        await hideTooltip(container, lineChartMouseHoverTooltipSelector);
+        await expectTooltipNotVisible(container);
 
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 80,
           clientY: 80,
         });
         return getTooltip(container);
       }
 
-      it('should animate towards the final position', () => {
-        const { container } = renderTestCase();
-        const tooltip = prime(container);
+      it('should animate towards the final position', async () => {
+        const { container } = await renderTestCase();
+        const tooltip = await prime(container);
 
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
         expect(tooltip.style).toMatchObject({
@@ -128,33 +130,35 @@ describe('Tooltip animation', () => {
     ));
 
     describe('when tooltip is displayed first time', () => {
-      function prime(container: Element) {
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+      async function prime(container: Element) {
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 20,
           clientY: 20,
         });
       }
 
-      it('should select isActive: true', () => {
-        const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+      it('should select isActive: true', async () => {
+        const { container, spy } = await renderTestCase(state =>
+          selectIsTooltipActive(state, 'axis', 'hover', undefined),
+        );
         expectLastCalledWith(spy, { activeIndex: null, isActive: false });
-        prime(container);
+        await prime(container);
         expectLastCalledWith(spy, { activeIndex: '0', isActive: true });
       });
 
-      it('should animate towards the final position', () => {
-        const { container } = renderTestCase();
-        prime(container);
+      it('should animate towards the final position', async () => {
+        const { container } = await renderTestCase();
+        await prime(container);
 
-        expectTooltipCoordinate(container, {
+        await expectTooltipCoordinate(container, {
           x: 15,
           y: 30,
         });
       });
 
-      it('should start at 0,0', () => {
-        const { container } = renderTestCase();
-        prime(container);
+      it('should start at 0,0', async () => {
+        const { container } = await renderTestCase();
+        await prime(container);
 
         const tooltip = getTooltip(container);
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
@@ -168,25 +172,25 @@ describe('Tooltip animation', () => {
     });
 
     describe('when tooltip hides, and then shows again', () => {
-      function prime(container: Element) {
-        expectTooltipNotVisible(container);
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+      async function prime(container: Element) {
+        await expectTooltipNotVisible(container);
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 20,
           clientY: 20,
         });
-        hideTooltip(container, lineChartMouseHoverTooltipSelector);
-        expectTooltipNotVisible(container);
+        await hideTooltip(container, lineChartMouseHoverTooltipSelector);
+        await expectTooltipNotVisible(container);
 
-        showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
+        await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, {
           clientX: 80,
           clientY: 80,
         });
         return getTooltip(container);
       }
 
-      it('should animate towards the final position', () => {
-        const { container } = renderTestCase();
-        const tooltip = prime(container);
+      it('should animate towards the final position', async () => {
+        const { container } = await renderTestCase();
+        const tooltip = await prime(container);
 
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
         expect(tooltip.style).toMatchObject({

@@ -1,6 +1,7 @@
-import React, { CSSProperties, useState } from 'react';
-import { fireEvent } from '@testing-library/react';
+import React, { ComponentType, CSSProperties, ReactNode, useState } from 'react';
 import { describe, expect, it, Mock, test, vi } from 'vitest';
+import { page, userEvent } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 import {
   Area,
   AreaChart,
@@ -28,7 +29,6 @@ import {
   XAxis,
   YAxis,
 } from '../../../src';
-import { testChartLayoutContext } from '../../util/context';
 import { mockGetBoundingClientRect, mockSequenceOfGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { assertNotNull } from '../../helper/assertNotNull';
 import { expectBars } from '../../helper/expectBars';
@@ -36,11 +36,13 @@ import { useAppSelector } from '../../../src/state/hooks';
 import { selectAxisRangeWithReverse } from '../../../src/state/selectors/axisSelectors';
 import { selectLegendPayload, selectLegendSize } from '../../../src/state/selectors/legendSelectors';
 import { dataWithSpecialNameAndFillProperties, numericalData } from '../../_data';
-import { createSelectorTestCase, rechartsTestRender } from '../../helper/createSelectorTestCase';
-import { CartesianLayout, Size } from '../../../src/util/types';
+import { createSelectorTestCase, rechartsTestRender } from '../../helper/browser/createSelectorTestCase';
+import { CartesianLayout, CartesianViewBox, ChartOffsetInternal, Size } from '../../../src/util/types';
 import { assertHasLegend, expectLegendLabels } from '../../helper/expectLegendLabels';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { HorizontalAlignmentType, VerticalAlignmentType } from '../../../src/component/DefaultLegendContent';
+import { useChartHeight, useChartWidth, useOffsetInternal, useViewBox } from '../../../src/context/chartLayoutContext';
+import { useClipPathId } from '../../../src/container/ClipPathProvider';
 
 type LegendTypeTestCases = ReadonlyArray<{
   legendType: LegendType;
@@ -301,20 +303,61 @@ const expectedLegendTypeSymbolsWithColor = (color: string): LegendTypeTestCases 
   },
 ];
 
-function assertExpectedAttributes(
+type AllContextPropertiesMixed = {
+  clipPathId: string | undefined;
+  viewBox: CartesianViewBox | undefined;
+  width: number | undefined;
+  height: number | undefined;
+  offset: ChartOffsetInternal | null;
+};
+
+/**
+ * Browser Mode copy of `testChartLayoutContext` from test/util/context.tsx, which renders with @testing-library/react.
+ * @param ChartParentComponent Parent component that provides the chart context.
+ * @param assertions Callback that receives the context properties and should contain assertions to test them.
+ * @returns An async function that renders the component and runs assertions on the context.
+ */
+function testChartLayoutContext(
+  ChartParentComponent: ComponentType<{ children: ReactNode }>,
+  assertions: (context: AllContextPropertiesMixed) => void,
+) {
+  return async () => {
+    // Fails the test if recharts silently does not render the child, so the assertions never run.
+    expect.hasAssertions();
+    function Spy() {
+      const clipPathId = useClipPathId();
+      const viewBox = useViewBox();
+      const width = useChartWidth();
+      const height = useChartHeight();
+      const offset = useOffsetInternal();
+      const context: AllContextPropertiesMixed = { clipPathId, viewBox, width, height, offset };
+      assertions(context);
+      return <></>;
+    }
+    await render(
+      <ChartParentComponent>
+        <Spy />
+      </ChartParentComponent>,
+    );
+  };
+}
+
+async function assertExpectedAttributes(
   container: HTMLElement,
   selector: string,
   expectedAttributes: Record<string, string>,
 ) {
   const [legendItem] = assertHasLegend(container);
   const symbol = legendItem.querySelector(selector);
-  expect(symbol).not.toBeNull();
-  expect(symbol).toBeInTheDocument();
+  assertNotNull(symbol);
+  const symbolLocator = page.elementLocator(symbol);
+  await expect.element(symbolLocator).toBeInTheDocument();
   const expectedAttributeNames = Object.keys(expectedAttributes);
-  expect.soft(symbol?.getAttributeNames().sort()).toEqual(expectedAttributeNames.sort());
-  expectedAttributeNames.forEach(attributeName => {
-    expect.soft(symbol).toHaveAttribute(attributeName, expectedAttributes[attributeName]);
-  });
+  expect.soft(symbol.getAttributeNames().sort()).toEqual(expectedAttributeNames.sort());
+  for (const attributeName of expectedAttributeNames) {
+    // eslint-disable-next-line no-await-in-loop
+    await expect.element(symbolLocator).toHaveAttribute(attributeName, expectedAttributes[attributeName]);
+  }
 }
 
 describe('<Legend />', () => {
@@ -334,9 +377,9 @@ describe('<Legend />', () => {
   ];
 
   describe('outside of chart context', () => {
-    it('should ignore payload prop', () => {
+    it('should ignore payload prop', async () => {
       // @ts-expect-error payload is now omitted from Legend types
-      const { container } = rechartsTestRender(<Legend width={500} height={30} payload={categoricalData} />);
+      const { container } = await rechartsTestRender(<Legend width={500} height={30} payload={categoricalData} />);
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
       expect(container.querySelectorAll('.recharts-default-legend .recharts-legend-item')).toHaveLength(0);
@@ -344,7 +387,7 @@ describe('<Legend />', () => {
   });
 
   describe('custom content as a react element', () => {
-    it('should render result in a portal', () => {
+    it('should render result in a portal', async () => {
       const CustomizedLegend = () => <div className="customized-legend">customized legend item</div>;
 
       function Example() {
@@ -367,15 +410,15 @@ describe('<Legend />', () => {
         );
       }
 
-      const { container } = rechartsTestRender(<Example />);
+      const { container } = await rechartsTestRender(<Example />);
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
       expect(container.querySelectorAll('[data-testid="my-custom-portal-target"] .customized-legend')).toHaveLength(1);
     });
 
-    it('should render a custom component wrapped legend', () => {
+    it('should render a custom component wrapped legend', async () => {
       const CustomLegend = (props: LegendProps) => <Legend {...props} />;
-      const { container } = rechartsTestRender(
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CustomLegend />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -386,9 +429,9 @@ describe('<Legend />', () => {
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(1);
     });
 
-    it('should inject extra sneaky props - but none of them are actual HTML props so they get ignored by React', () => {
+    it('should inject extra sneaky props - but none of them are actual HTML props so they get ignored by React', async () => {
       const CustomizedLegend = () => <div className="customized-legend">customized legend item</div>;
-      const { container } = rechartsTestRender(
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend content={<CustomizedLegend />} />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -403,11 +446,11 @@ describe('<Legend />', () => {
   });
 
   describe('content as a function', () => {
-    it('should render result', () => {
+    it('should render result', async () => {
       const customizedLegend = () => {
         return 'custom return value';
       };
-      const { container, getByText } = rechartsTestRender(
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend content={customizedLegend} />
           <Line dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -416,18 +459,18 @@ describe('<Legend />', () => {
       );
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
-      expect(getByText('custom return value')).toBeInTheDocument();
-      expect(getByText('custom return value')).toBeVisible();
+      await expect.element(getByText('custom return value', { exact: true })).toBeInTheDocument();
+      await expect.element(getByText('custom return value', { exact: true })).toBeVisible();
     });
 
-    it('should pass parameters to the function', () => {
+    it('should pass parameters to the function', async () => {
       mockGetBoundingClientRect({ width: 70, height: 20 });
       const spy = vi.fn();
       const customContent = (params: unknown): null => {
         spy(params);
         return null;
       };
-      rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend content={customContent} />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -531,8 +574,8 @@ describe('<Legend />', () => {
       mockGetBoundingClientRect({ width: 100, height: 20 });
     });
 
-    it('should set absolute position based on position="top"', () => {
-      const { container } = rechartsTestRender(
+    it('should set absolute position based on position="top"', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="top" />
           <Line dataKey="value" />
@@ -569,8 +612,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should set absolute position offset by margin', () => {
-      const { container } = rechartsTestRender(
+    it('should set absolute position offset by margin', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 0, bottom: 11, left: 30 }}>
           <Legend position="top" />
           <Line dataKey="value" />
@@ -589,8 +632,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should set absolute position based on position="insideBottomRight"', () => {
-      const { container } = rechartsTestRender(
+    it('should set absolute position based on position="insideBottomRight"', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="insideBottomRight" />
           <Line dataKey="value" />
@@ -613,8 +656,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should keep insideBottomRight within the plot area after margins and axes', () => {
-      const { container } = rechartsTestRender(
+    it('should keep insideBottomRight within the plot area after margins and axes', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 7, bottom: 11, left: 30 }}>
           <XAxis />
           <YAxis />
@@ -632,8 +675,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should apply offset', () => {
-      const { container } = rechartsTestRender(
+    it('should apply offset', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="left" offset={10} />
           <Line dataKey="value" />
@@ -656,8 +699,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should position outside legends beyond the axes', () => {
-      const { container } = rechartsTestRender(
+    it('should position outside legends beyond the axes', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 0, bottom: 11, left: 30 }}>
           <XAxis />
           <YAxis />
@@ -675,8 +718,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should default left and top positions to vertical and horizontal layouts', () => {
-      const { container } = rechartsTestRender(
+    it('should default left and top positions to vertical and horizontal layouts', async () => {
+      const { container } = await rechartsTestRender(
         <>
           <LineChart width={500} height={500} data={numericalData}>
             <Legend position="left" />
@@ -692,16 +735,18 @@ describe('<Legend />', () => {
       );
 
       const items = container.getElementsByClassName('recharts-legend-item');
-      expect(items[0]).toHaveStyle({ display: 'block', whiteSpace: 'nowrap' });
-      expect(items[2]).toHaveStyle({ display: 'inline-block', whiteSpace: 'nowrap' });
-      expect(items[0].querySelector('.recharts-legend-item-text')).toHaveStyle({
+      await expect.element(page.elementLocator(items[0])).toHaveStyle({ display: 'block', whiteSpace: 'nowrap' });
+      await expect
+        .element(page.elementLocator(items[2]))
+        .toHaveStyle({ display: 'inline-block', whiteSpace: 'nowrap' });
+      await expect.element(page.elementLocator(items[0]).getByCSS('.recharts-legend-item-text')).toHaveStyle({
         whiteSpace: 'normal',
         overflowWrap: 'break-word',
       });
     });
 
-    it('should allow coordinate object position', () => {
-      const { container } = rechartsTestRender(
+    it('should allow coordinate object position', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position={{ x: 100, y: 100 }} />
           <Line dataKey="value" />
@@ -723,11 +768,11 @@ describe('<Legend />', () => {
   });
 
   describe('content as a React Component', () => {
-    it('should render result', () => {
+    it('should render result', async () => {
       const CustomizedLegend = () => {
         return <>custom return value</>;
       };
-      const { container, getByText } = rechartsTestRender(
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend content={CustomizedLegend} />
           <Line dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -736,14 +781,14 @@ describe('<Legend />', () => {
       );
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
-      expect(getByText('custom return value')).toBeInTheDocument();
-      expect(getByText('custom return value')).toBeVisible();
+      await expect.element(getByText('custom return value', { exact: true })).toBeInTheDocument();
+      await expect.element(getByText('custom return value', { exact: true })).toBeVisible();
     });
   });
 
   describe('as a child of LineChart', () => {
-    test('Renders `strokeDasharray` (if present) in Legend when iconType is set to `plainline`', () => {
-      const { container } = rechartsTestRender(
+    test('Renders `strokeDasharray` (if present) in Legend when iconType is set to `plainline`', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend iconType="plainline" />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -757,8 +802,8 @@ describe('<Legend />', () => {
       expect(container.querySelectorAll('.recharts-default-legend .recharts-legend-item line')).toHaveLength(2);
     });
 
-    test('Does not render `strokeDasharray` (if not present) when iconType is not set to `plainline`', () => {
-      const { container } = rechartsTestRender(
+    test('Does not render `strokeDasharray` (if not present) when iconType is not set to `plainline`', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData}>
           <Legend iconType="line" />
           <Line dataKey="pv" />
@@ -772,8 +817,8 @@ describe('<Legend />', () => {
       expect(container.querySelectorAll('.recharts-default-legend .recharts-legend-item line')).toHaveLength(0);
     });
 
-    test('Renders name value of siblings when dataKey is a function', () => {
-      const { container } = rechartsTestRender(
+    test('Renders name value of siblings when dataKey is a function', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Line dataKey={row => row.value} name="My Line Data" />
@@ -787,8 +832,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    test('Legend defaults are read correctly', () => {
-      const { container } = rechartsTestRender(
+    test('Legend defaults are read correctly', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Line dataKey={row => row.value} name="My Line Data" />
@@ -802,13 +847,13 @@ describe('<Legend />', () => {
       expect(legendWrapper.style.height).toBe('auto');
       const legendItem = container.getElementsByClassName('legend-item-0')[0];
       const surface = legendItem.getElementsByClassName('recharts-surface')[0];
-      expect(surface.getAttribute('height')).toBe('14');
-      expect(surface.getAttribute('width')).toBe('14');
-      expect(surface.getAttribute('aria-label')).toBe('My Line Data legend icon');
+      await expect.element(page.elementLocator(surface)).toHaveAttribute('height', '14');
+      await expect.element(page.elementLocator(surface)).toHaveAttribute('width', '14');
+      await expect.element(page.elementLocator(surface)).toHaveAttribute('aria-label', 'My Line Data legend icon');
     });
 
-    test('aria-label uses the raw entry value even when formatter returns a React element', () => {
-      const { container } = rechartsTestRender(
+    test('aria-label uses the raw entry value even when formatter returns a React element', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend formatter={value => <strong>{value}</strong>} />
           <Line dataKey="value" name="UV" />
@@ -817,11 +862,11 @@ describe('<Legend />', () => {
 
       const legendItem = container.getElementsByClassName('legend-item-0')[0];
       const surface = legendItem.getElementsByClassName('recharts-surface')[0];
-      expect(surface.getAttribute('aria-label')).toBe('UV legend icon');
+      await expect.element(page.elementLocator(surface)).toHaveAttribute('aria-label', 'UV legend icon');
     });
 
-    test('aria-label drops the value when the legend entry has no name or string dataKey', () => {
-      const { container } = rechartsTestRender(
+    test('aria-label drops the value when the legend entry has no name or string dataKey', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey={row => row.value} />
@@ -830,104 +875,112 @@ describe('<Legend />', () => {
 
       const legendItem = container.getElementsByClassName('legend-item-0')[0];
       const surface = legendItem.getElementsByClassName('recharts-surface')[0];
-      expect(surface.getAttribute('aria-label')).toBe('legend icon');
+      await expect.element(page.elementLocator(surface)).toHaveAttribute('aria-label', 'legend icon');
     });
 
-    it('should render one line legend item for each Line, with default class and style attributes', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should render one line legend item for each Line, with default class and style attributes', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="percent" />
           <Line dataKey="value" />
         </LineChart>,
       );
-      expect(getByText('value')).toBeInTheDocument();
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('value', { exact: true })).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
 
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(2);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
       expect.soft(legendItems[1].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[1].getAttribute('class')).toBe('recharts-legend-item legend-item-1');
-      expect
-        .soft(legendItems[1].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-1');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Line should default to line
       const find = expectedLegendTypeSymbolsWithColor('#3182bd').find(tc => tc.legendType === 'line');
       assertNotNull(find);
       const { selector, expectedAttributes } = find;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="unknown" />
         </LineChart>,
       );
-      expect(getByText('unknown')).toBeInTheDocument();
+      await expect.element(getByText('unknown', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(1);
       expect(legendItems[0].textContent).toBe('unknown');
     });
 
-    it('should change color and className of hidden Line', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should change color and className of hidden Line', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend inactiveColor="yellow" />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Line dataKey="percent" stroke="red" hide />
         </LineChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Line should default to line
       const findResult = expectedLegendTypeSymbolsWithColor('yellow').find(tc => tc.legendType === 'line');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should have a default inactive Line legend color', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should have a default inactive Line legend color', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Line dataKey="percent" stroke="red" hide />
         </LineChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Line should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor('#ccc').find(tc => tc.legendType === 'line');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render one empty legend item if Line has no dataKey', () => {
-      const { container } = rechartsTestRender(
+    it('should render one empty legend item if Line has no dataKey', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* I wonder if dataKey should be required here, like it is in Radar? */}
@@ -937,8 +990,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: '' }]);
     });
 
-    it('should set legend item from `name` prop on Line, and update it after rerender', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should set legend item from `name` prop on Line, and update it after rerender', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="percent" name="%" />
@@ -946,7 +999,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: 'none', textContent: '%' }]);
 
-      rerender(
+      await rerender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="percent" name="Percent" />
@@ -955,8 +1008,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'Percent' }]);
     });
 
-    it('should not implicitly read `name` and `fill` properties from the data array', () => {
-      const { container } = rechartsTestRender(
+    it('should not implicitly read `name` and `fill` properties from the data array', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Line dataKey="value" />
@@ -966,8 +1019,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
     });
 
-    it('should disappear after Line element is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Line element is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <LineChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Line dataKey="name" />
@@ -979,7 +1032,7 @@ describe('<Legend />', () => {
         { fill: 'none', textContent: 'value' },
       ]);
 
-      rerender(
+      await rerender(
         <LineChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Line dataKey="value" />
@@ -988,8 +1041,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
     });
 
-    it('should update legend if Line data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if Line data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="value" />
@@ -997,7 +1050,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
 
-      rerender(
+      await rerender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="percent" />
@@ -1006,14 +1059,14 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'percent' }]);
     });
 
-    it('should pass parameters to the Component', () => {
+    it('should pass parameters to the Component', async () => {
       mockGetBoundingClientRect({ width: 80, height: 30 });
       const spy = vi.fn();
       const CustomContent = (props: unknown): null => {
         spy(props);
         return null;
       };
-      rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend content={CustomContent} />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -1110,8 +1163,8 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should render legend labels', () => {
-      const { container } = rechartsTestRender(
+    it('should render legend labels', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend iconType="plainline" />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -1125,8 +1178,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should render legend labels with same text color', () => {
-      const { container } = rechartsTestRender(
+    it('should render legend labels with same text color', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend iconType="plainline" labelStyle={{ color: '#666' }} />
           <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} strokeDasharray="5 5" />
@@ -1140,9 +1193,9 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should not forward ID and className to the DOM', () => {
+    it('should not forward ID and className to the DOM', async () => {
       // This is arguably a bug - so this test is just documenting the current behavior
-      const { container } = rechartsTestRender(
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} data={categoricalData}>
           {/* @ts-expect-error TypeScript is correct here since these props don't do anything */}
           <Legend id="foo" className="bar" />
@@ -1150,12 +1203,12 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      expect(container.querySelector('#foo')).toBeNull();
-      expect(container.querySelector('.bar')).toBeNull();
+      await expect.element(page.elementLocator(container).getByCSS('#foo')).not.toBeInTheDocument();
+      await expect.element(page.elementLocator(container).getByCSS('.bar')).not.toBeInTheDocument();
     });
 
-    test('label style should not change color of hidden Line', () => {
-      const { container } = rechartsTestRender(
+    test('label style should not change color of hidden Line', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend inactiveColor="yellow" labelStyle={{ color: '#666' }} />
           <Line dataKey="percent" stroke="red" hide />
@@ -1164,27 +1217,27 @@ describe('<Legend />', () => {
       const findResult = expectedLegendTypeSymbolsWithColor('yellow').find(tc => tc.legendType === 'line');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
       expectLegendLabels(container, [{ fill: 'none', textContent: 'percent', textColor: 'yellow' }]);
     });
 
     describe('legendType symbols', () => {
       test.each(expectedLegendTypeSymbolsWithColor('#3182bd'))(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <LineChart width={500} height={500} data={categoricalData}>
               <Legend />
               <Line dataKey="value" legendType={legendType} />
             </LineChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
 
-    it('should prefer Legend.iconType over Line.legendType', () => {
-      const { container } = rechartsTestRender(
+    it('should prefer Legend.iconType over Line.legendType', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend iconType="circle" />
           <Line dataKey="value" legendType="square" />
@@ -1193,13 +1246,13 @@ describe('<Legend />', () => {
       const findResult = expectedLegendTypeSymbolsWithColor('#3182bd').find(li => li.legendType === 'circle');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
   });
 
   describe('as a child of LineChart when data is passed to Line child instead of the root', () => {
-    it('should render labels', () => {
-      const { container } = rechartsTestRender(
+    it('should render labels', async () => {
+      const { container } = await rechartsTestRender(
         <LineChart width={600} height={300} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <Legend iconType="plainline" />
           <Line
@@ -1222,8 +1275,8 @@ describe('<Legend />', () => {
   });
 
   describe('as a child of BarChart', () => {
-    it('should render one rect legend item for each Bar, with default class and style attributes', () => {
-      const { container } = rechartsTestRender(
+    it('should render one rect legend item for each Bar, with default class and style attributes', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="percent" />
@@ -1238,25 +1291,29 @@ describe('<Legend />', () => {
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
       expect.soft(legendItems[1].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[1].getAttribute('class')).toBe('recharts-legend-item legend-item-1');
-      expect
-        .soft(legendItems[1].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-1');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should not render items with a type of `none`', () => {
-      const { container } = rechartsTestRender(
+    it('should not render items with a type of `none`', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Bar dataKey="value" legendType="star" />
@@ -1267,7 +1324,7 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: undefined, textContent: 'value' }]);
     });
 
-    it('should push away Bars to make space', () => {
+    it('should push away Bars to make space', async () => {
       mockGetBoundingClientRect({ width: 0, height: 10 });
       const yAxisRangeSpy = vi.fn();
       const Comp = (): null => {
@@ -1275,7 +1332,7 @@ describe('<Legend />', () => {
         return null;
       };
 
-      const { container, rerender } = rechartsTestRender(
+      const { container, rerender } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar isAnimationActive={false} dataKey="percent" />
@@ -1338,7 +1395,7 @@ describe('<Legend />', () => {
         },
       ]);
 
-      rerender(
+      await rerender(
         <BarChart width={500} height={500} data={numericalData}>
           <Bar isAnimationActive={false} dataKey="percent" />
           <Comp />
@@ -1402,8 +1459,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="unknown" />
@@ -1412,8 +1469,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'unknown' }]);
     });
 
-    it('should change color and className of hidden Bar', () => {
-      const { container } = rechartsTestRender(
+    it('should change color and className of hidden Bar', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend inactiveColor="yellow" />
           {/* this will ignore the stroke and use inactive color on legend */}
@@ -1424,20 +1481,22 @@ describe('<Legend />', () => {
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor('yellow').find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should have a default inactive Bar legend color', () => {
-      const { container } = rechartsTestRender(
+    it('should have a default inactive Bar legend color', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* this will ignore the stroke and use inactive color on legend */}
@@ -1448,20 +1507,22 @@ describe('<Legend />', () => {
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Bar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor('#ccc').find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render one empty legend item if Bar has no dataKey', () => {
-      const { container } = rechartsTestRender(
+    it('should render one empty legend item if Bar has no dataKey', async () => {
+      const { container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar />
@@ -1470,8 +1531,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: '' }]);
     });
 
-    it('should set legend item from `name` prop on Bar, and update it after rerender', () => {
-      const { rerender, container } = rechartsTestRender(
+    it('should set legend item from `name` prop on Bar, and update it after rerender', async () => {
+      const { rerender, container } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="percent" name="%" />
@@ -1479,7 +1540,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: null, textContent: '%' }]);
 
-      rerender(
+      await rerender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="percent" name="Percent" />
@@ -1488,26 +1549,26 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'Percent' }]);
     });
 
-    it('should not implicitly read `name` and `fill` properties from the data array', () => {
-      const { container, queryByText } = rechartsTestRender(
+    it('should not implicitly read `name` and `fill` properties from the data array', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Bar dataKey="color" />
         </BarChart>,
       );
       expectLegendLabels(container, [{ fill: null, textContent: 'color' }]);
-      expect.soft(queryByText('name1')).not.toBeInTheDocument();
-      expect.soft(queryByText('name2')).not.toBeInTheDocument();
-      expect.soft(queryByText('name3')).not.toBeInTheDocument();
-      expect.soft(queryByText('name4')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill1"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill2"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill3"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill4"]')).not.toBeInTheDocument();
+      await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name4', { exact: true })).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill1"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill2"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill3"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill4"]')).not.toBeInTheDocument();
     });
 
-    it('should disappear after Bar element is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Bar element is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Bar dataKey="name" />
@@ -1519,7 +1580,7 @@ describe('<Legend />', () => {
         { fill: null, textContent: 'value' },
       ]);
 
-      rerender(
+      await rerender(
         <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Bar dataKey="value" />
@@ -1528,8 +1589,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'value' }]);
     });
 
-    it('should update legend if Bar data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if Bar data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="value" />
@@ -1537,7 +1598,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: null, textContent: 'value' }]);
 
-      rerender(
+      await rerender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Bar dataKey="percent" />
@@ -1547,8 +1608,8 @@ describe('<Legend />', () => {
     });
 
     describe('wrapper props', () => {
-      it('should provide default props', () => {
-        const { container } = rechartsTestRender(
+      it('should provide default props', async () => {
+        const { container } = await rechartsTestRender(
           <BarChart width={500} height={500} data={numericalData}>
             <Legend />
             <Bar dataKey="value" />
@@ -1556,20 +1617,20 @@ describe('<Legend />', () => {
         );
         const wrapper = container.querySelector('.recharts-legend-wrapper');
         assertNotNull(wrapper);
-        expect(wrapper).toBeInTheDocument();
+        await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-        expect
-          .soft(wrapper.getAttribute('style'))
-          .toBe('position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px;');
+        await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+        await expect
+          .element(page.elementLocator(wrapper))
+          .toHaveAttribute('style', 'position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px;');
       });
 
-      it('should change width and height based on chart width and height and margin and bounding box size', () => {
+      it('should change width and height based on chart width and height and margin and bounding box size', async () => {
         mockGetBoundingClientRect({
           width: 3,
           height: 5,
         });
-        const { container } = rechartsTestRender(
+        const { container } = await rechartsTestRender(
           <BarChart width={300} height={200} margin={{ top: 11, right: 13, left: 17, bottom: 19 }} data={numericalData}>
             <Legend />
             <Bar dataKey="value" />
@@ -1577,16 +1638,16 @@ describe('<Legend />', () => {
         );
         const wrapper = container.querySelector('.recharts-legend-wrapper');
         assertNotNull(wrapper);
-        expect(wrapper).toBeInTheDocument();
+        await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-        expect
-          .soft(wrapper.getAttribute('style'))
-          .toBe('position: absolute; width: 270px; height: auto; left: 17px; bottom: 19px;');
+        await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+        await expect
+          .element(page.elementLocator(wrapper))
+          .toHaveAttribute('style', 'position: absolute; width: 270px; height: auto; left: 17px; bottom: 19px;');
       });
 
-      it('should change width and height based on explicit Legend props', () => {
-        const { container } = rechartsTestRender(
+      it('should change width and height based on explicit Legend props', async () => {
+        const { container } = await rechartsTestRender(
           <BarChart width={500} height={500} margin={{ top: 11, right: 13, left: 17, bottom: 19 }} data={numericalData}>
             <Legend width={90} height={20} />
             <Bar dataKey="value" />
@@ -1594,16 +1655,16 @@ describe('<Legend />', () => {
         );
         const wrapper = container.querySelector('.recharts-legend-wrapper');
         assertNotNull(wrapper);
-        expect(wrapper).toBeInTheDocument();
+        await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-        expect
-          .soft(wrapper.getAttribute('style'))
-          .toBe('position: absolute; width: 90px; height: 20px; left: 17px; bottom: 19px;');
+        await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+        await expect
+          .element(page.elementLocator(wrapper))
+          .toHaveAttribute('style', 'position: absolute; width: 90px; height: 20px; left: 17px; bottom: 19px;');
       });
 
-      it('should append wrapperStyle', () => {
-        const { container } = rechartsTestRender(
+      it('should append wrapperStyle', async () => {
+        const { container } = await rechartsTestRender(
           <BarChart width={500} height={500} data={numericalData}>
             <Legend wrapperStyle={{ backgroundColor: 'red' }} />
             <Bar dataKey="value" />
@@ -1611,12 +1672,15 @@ describe('<Legend />', () => {
         );
         const wrapper = container.querySelector('.recharts-legend-wrapper');
         assertNotNull(wrapper);
-        expect(wrapper).toBeInTheDocument();
+        await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-        expect
-          .soft(wrapper.getAttribute('style'))
-          .toBe('position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px; background-color: red;');
+        await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+        await expect
+          .element(page.elementLocator(wrapper))
+          .toHaveAttribute(
+            'style',
+            'position: absolute; width: 490px; height: auto; left: 5px; bottom: 5px; background-color: red;',
+          );
       });
 
       const wrapperStyleTestCases: ReadonlyArray<{
@@ -1670,8 +1734,8 @@ describe('<Legend />', () => {
       ];
       test.each(wrapperStyleTestCases)(
         'should calculate position if wrapperStyle is $name',
-        ({ wrapperStyle, align, expectedStyle }) => {
-          const { container } = rechartsTestRender(
+        async ({ wrapperStyle, align, expectedStyle }) => {
+          const { container } = await rechartsTestRender(
             <BarChart
               width={500}
               height={500}
@@ -1684,10 +1748,10 @@ describe('<Legend />', () => {
           );
           const wrapper = container.querySelector('.recharts-legend-wrapper');
           assertNotNull(wrapper);
-          expect(wrapper).toBeInTheDocument();
+          await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
           expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-          expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-          expect.soft(wrapper.getAttribute('style')).toBe(expectedStyle);
+          await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+          await expect.element(page.elementLocator(wrapper)).toHaveAttribute('style', expectedStyle);
         },
       );
 
@@ -1823,12 +1887,12 @@ describe('<Legend />', () => {
 
       test.each(layoutPositionCartesianTests)(
         'should calculate position for align=$align, verticalAlign=$verticalAlign, layout=$layout',
-        ({ align, verticalAlign, layout, expectedStyleOnSecondRender }) => {
+        async ({ align, verticalAlign, layout, expectedStyleOnSecondRender }) => {
           mockGetBoundingClientRect({
             width: 23,
             height: 29,
           });
-          const { container, rerender } = rechartsTestRender(
+          const { container, rerender } = await rechartsTestRender(
             <BarChart
               width={500}
               height={700}
@@ -1841,16 +1905,16 @@ describe('<Legend />', () => {
           );
           const wrapper = container.querySelector('.recharts-legend-wrapper');
           assertNotNull(wrapper);
-          expect(wrapper).toBeInTheDocument();
+          await expect.element(page.elementLocator(wrapper)).toBeInTheDocument();
           expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
-          expect.soft(wrapper.getAttribute('class')).toBe('recharts-legend-wrapper');
-          expect.soft(wrapper.getAttribute('style')).toBe(expectedStyleOnSecondRender);
+          await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
+          await expect.element(page.elementLocator(wrapper)).toHaveAttribute('style', expectedStyleOnSecondRender);
           /*
            * Because the bounding box is set as a class property instead of a state,
            * reading the legend width and height does not trigger re-render!
            * Instead we have to trigger manually here.
            */
-          rerender(
+          await rerender(
             <BarChart
               width={500}
               height={700}
@@ -1863,22 +1927,22 @@ describe('<Legend />', () => {
           );
           const wrapper2 = container.querySelector('.recharts-legend-wrapper');
           assertNotNull(wrapper2);
-          expect(wrapper2).toBeInTheDocument();
+          await expect.element(page.elementLocator(wrapper2)).toBeInTheDocument();
           expect.soft(wrapper2.getAttributeNames()).toEqual(['class', 'style']);
-          expect.soft(wrapper2.getAttribute('class')).toBe('recharts-legend-wrapper');
-          expect.soft(wrapper2.getAttribute('style')).toBe(expectedStyleOnSecondRender);
+          await expect.element(page.elementLocator(wrapper2)).toHaveAttribute('class', 'recharts-legend-wrapper');
+          await expect.element(page.elementLocator(wrapper2)).toHaveAttribute('style', expectedStyleOnSecondRender);
         },
       );
     });
 
     describe('offset calculation', () => {
-      it('should reduce vertical offset by the height of legend', () => {
+      it('should reduce vertical offset by the height of legend', async () => {
         mockGetBoundingClientRect({
           height: 13,
           width: 17,
         });
         const spy = vi.fn();
-        testChartLayoutContext(
+        await testChartLayoutContext(
           props => (
             <BarChart width={500} height={500} data={categoricalData}>
               {props.children}
@@ -1901,13 +1965,13 @@ describe('<Legend />', () => {
           height: 490 - 13,
         });
       });
-      it('should ignore height of legend if it has verticalAlign == middle', () => {
+      it('should ignore height of legend if it has verticalAlign == middle', async () => {
         mockGetBoundingClientRect({
           height: 13,
           width: 17,
         });
         const spy = vi.fn();
-        testChartLayoutContext(
+        await testChartLayoutContext(
           props => (
             <BarChart width={500} height={500} data={categoricalData}>
               {props.children}
@@ -1930,13 +1994,13 @@ describe('<Legend />', () => {
           height: 490,
         });
       });
-      it('should reduce vertical offset by the width of vertical legend', () => {
+      it('should reduce vertical offset by the width of vertical legend', async () => {
         mockGetBoundingClientRect({
           height: 13,
           width: 17,
         });
         const spy = vi.fn();
-        testChartLayoutContext(
+        await testChartLayoutContext(
           props => (
             <BarChart width={500} height={500} data={categoricalData}>
               {props.children}
@@ -1959,13 +2023,13 @@ describe('<Legend />', () => {
           height: 490,
         });
       });
-      it('should ignore width of vertical legend if it has align == center', () => {
+      it('should ignore width of vertical legend if it has align == center', async () => {
         mockGetBoundingClientRect({
           height: 13,
           width: 17,
         });
         const spy = vi.fn();
-        testChartLayoutContext(
+        await testChartLayoutContext(
           props => (
             <BarChart width={500} height={500} data={categoricalData}>
               {props.children}
@@ -1989,14 +2053,14 @@ describe('<Legend />', () => {
         });
       });
 
-      it('should update bottom offset when legend height increases after resize (regression #7200)', () => {
+      it('should update bottom offset when legend height increases after resize (regression #7200)', async () => {
         // Simulate legend wrapping: first render has small height, then height increases
         mockSequenceOfGetBoundingClientRect([
           { height: 20, width: 200 },
           { height: 60, width: 200 },
         ]);
         const spy = vi.fn();
-        testChartLayoutContext(
+        await testChartLayoutContext(
           props => (
             <BarChart width={500} height={500} data={categoricalData}>
               {props.children}
@@ -2024,19 +2088,19 @@ describe('<Legend />', () => {
     describe('legendType symbols', () => {
       test.each(expectedLegendTypeSymbolsWithoutColor)(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <BarChart width={500} height={500} data={categoricalData}>
               <Legend />
               <Bar dataKey="value" legendType={legendType} />
             </BarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Bar.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Bar.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <BarChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Bar dataKey="value" legendType="square" />
@@ -2045,7 +2109,7 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithoutColor.find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
   });
@@ -2061,8 +2125,8 @@ describe('<Legend />', () => {
         </AreaChart>
       ));
 
-      it('should render one legend item for each Area', () => {
-        const { container } = renderTestCase();
+      it('should render one legend item for each Area', async () => {
+        const { container } = await renderTestCase();
         expectLegendLabels(container, [
           {
             fill: 'none',
@@ -2075,35 +2139,39 @@ describe('<Legend />', () => {
         ]);
       });
 
-      it('should add class and style attributes to each element', () => {
-        const { container } = renderTestCase();
+      it('should add class and style attributes to each element', async () => {
+        const { container } = await renderTestCase();
 
         const legendItems = assertHasLegend(container);
         expect(legendItems).toHaveLength(2);
 
         expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0');
-        expect
-          .soft(legendItems[0].getAttribute('style'))
-          .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+        await expect
+          .element(page.elementLocator(legendItems[0]))
+          .toHaveAttribute('class', 'recharts-legend-item legend-item-0');
+        await expect
+          .element(page.elementLocator(legendItems[0]))
+          .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
         expect.soft(legendItems[1].getAttributeNames()).toEqual(['class', 'style']);
-        expect.soft(legendItems[1].getAttribute('class')).toBe('recharts-legend-item legend-item-1');
-        expect
-          .soft(legendItems[1].getAttribute('style'))
-          .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+        await expect
+          .element(page.elementLocator(legendItems[1]))
+          .toHaveAttribute('class', 'recharts-legend-item legend-item-1');
+        await expect
+          .element(page.elementLocator(legendItems[1]))
+          .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
       });
 
-      it('should render Line symbols and colors in absence of explicit legendType', () => {
-        const { container } = renderTestCase();
+      it('should render Line symbols and colors in absence of explicit legendType', async () => {
+        const { container } = await renderTestCase();
         const findResult = expectedLegendTypeSymbolsWithColor('#3182bd').find(tc => tc.legendType === 'line');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           <Area dataKey="unknown" />
@@ -2112,56 +2180,60 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'unknown' }]);
     });
 
-    it('should change color and className of hidden Area', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should change color and className of hidden Area', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend inactiveColor="yellow" />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Area dataKey="percent" stroke="red" hide />
         </AreaChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Area should default to line
       const findResult = expectedLegendTypeSymbolsWithColor('yellow').find(tc => tc.legendType === 'line');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should have a default inactive Area legend color', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should have a default inactive Area legend color', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Area dataKey="percent" stroke="red" hide />
         </AreaChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Area should default to line
       const findResult = expectedLegendTypeSymbolsWithColor('#ccc').find(tc => tc.legendType === 'line');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render one empty legend item if Area has no dataKey', () => {
-      const { container } = rechartsTestRender(
+    it('should render one empty legend item if Area has no dataKey', async () => {
+      const { container } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* @ts-expect-error Indeed Typescript is correct, Area requires a dataKey */}
@@ -2180,10 +2252,10 @@ describe('<Legend />', () => {
         </AreaChart>
       ));
 
-      it('should set legend item from `name` prop on Area, and update it after rerender', () => {
-        const { container, rerender } = renderTestCase();
+      it('should set legend item from `name` prop on Area, and update it after rerender', async () => {
+        const { container, rerender } = await renderTestCase();
         expectLegendLabels(container, [{ fill: 'none', textContent: '%' }]);
-        rerender(({ children }) => (
+        await rerender(({ children }) => (
           <AreaChart width={500} height={500} data={numericalData}>
             <Legend />
             <Area dataKey="percent" name="Percent" />
@@ -2193,8 +2265,8 @@ describe('<Legend />', () => {
         expectLegendLabels(container, [{ fill: 'none', textContent: 'Percent' }]);
       });
 
-      it('should select legend payload', () => {
-        const { spy } = renderTestCase(selectLegendPayload);
+      it('should select legend payload', async () => {
+        const { spy } = await renderTestCase(selectLegendPayload);
         expectLastCalledWith(spy, [
           {
             inactive: false,
@@ -2232,26 +2304,26 @@ describe('<Legend />', () => {
       });
     });
 
-    it('should not implicitly read `name` and `fill` properties from the data array', () => {
-      const { container, queryByText } = rechartsTestRender(
+    it('should not implicitly read `name` and `fill` properties from the data array', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Area dataKey="value" />
         </AreaChart>,
       );
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
-      expect.soft(queryByText('name1')).not.toBeInTheDocument();
-      expect.soft(queryByText('name2')).not.toBeInTheDocument();
-      expect.soft(queryByText('name3')).not.toBeInTheDocument();
-      expect.soft(queryByText('name4')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill1"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill2"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill3"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill4"]')).not.toBeInTheDocument();
+      await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name4', { exact: true })).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill1"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill2"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill3"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill4"]')).not.toBeInTheDocument();
     });
 
-    it('should disappear after Area element is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Area element is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Area dataKey="name" />
@@ -2263,7 +2335,7 @@ describe('<Legend />', () => {
         { fill: 'none', textContent: 'value' },
       ]);
 
-      rerender(
+      await rerender(
         <AreaChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Area dataKey="value" />
@@ -2272,8 +2344,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
     });
 
-    it('should update legend if Area data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if Area data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           <Area dataKey="value" />
@@ -2281,7 +2353,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: 'none', textContent: 'value' }]);
 
-      rerender(
+      await rerender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           <Area dataKey="percent" />
@@ -2294,14 +2366,14 @@ describe('<Legend />', () => {
       describe('with default color', () => {
         test.each(expectedLegendTypeSymbolsWithColor('#3182bd'))(
           'should render element $selector for legendType $legendType',
-          ({ legendType, selector, expectedAttributes }) => {
-            const { container } = rechartsTestRender(
+          async ({ legendType, selector, expectedAttributes }) => {
+            const { container } = await rechartsTestRender(
               <AreaChart width={500} height={500} data={categoricalData}>
                 <Legend />
                 <Area dataKey="value" legendType={legendType} />
               </AreaChart>,
             );
-            assertExpectedAttributes(container, selector, expectedAttributes);
+            await assertExpectedAttributes(container, selector, expectedAttributes);
           },
         );
       });
@@ -2309,14 +2381,14 @@ describe('<Legend />', () => {
       describe('with explicit fill and undefined stroke, should still use default stroke', () => {
         test.each(expectedLegendTypeSymbolsWithColor('#3182bd'))(
           'should render legend colors for $selector for legendType $legendType',
-          ({ legendType, selector, expectedAttributes }) => {
-            const { container } = rechartsTestRender(
+          async ({ legendType, selector, expectedAttributes }) => {
+            const { container } = await rechartsTestRender(
               <AreaChart width={500} height={500} data={numericalData}>
                 <Legend />
                 <Area dataKey="percent" legendType={legendType} fill="red" />
               </AreaChart>,
             );
-            assertExpectedAttributes(container, selector, expectedAttributes);
+            await assertExpectedAttributes(container, selector, expectedAttributes);
           },
         );
       });
@@ -2324,14 +2396,14 @@ describe('<Legend />', () => {
       describe('with explicit stroke', () => {
         test.each(expectedLegendTypeSymbolsWithColor('yellow'))(
           'should render legend colors for $selector for legendType $legendType',
-          ({ legendType, selector, expectedAttributes }) => {
-            const { container } = rechartsTestRender(
+          async ({ legendType, selector, expectedAttributes }) => {
+            const { container } = await rechartsTestRender(
               <AreaChart width={500} height={500} data={numericalData}>
                 <Legend />
                 <Area dataKey="percent" legendType={legendType} stroke="yellow" />
               </AreaChart>,
             );
-            assertExpectedAttributes(container, selector, expectedAttributes);
+            await assertExpectedAttributes(container, selector, expectedAttributes);
           },
         );
       });
@@ -2339,14 +2411,14 @@ describe('<Legend />', () => {
       describe('with both fill and stroke', () => {
         test.each(expectedLegendTypeSymbolsWithColor('gold'))(
           'should render legend colors for $selector for legendType $legendType',
-          ({ legendType, selector, expectedAttributes }) => {
-            const { container } = rechartsTestRender(
+          async ({ legendType, selector, expectedAttributes }) => {
+            const { container } = await rechartsTestRender(
               <AreaChart width={500} height={500} data={numericalData}>
                 <Legend />
                 <Area dataKey="percent" legendType={legendType} stroke="gold" fill="green" />
               </AreaChart>,
             );
-            assertExpectedAttributes(container, selector, expectedAttributes);
+            await assertExpectedAttributes(container, selector, expectedAttributes);
           },
         );
       });
@@ -2354,20 +2426,20 @@ describe('<Legend />', () => {
       describe('with stroke = none', () => {
         test.each(expectedLegendTypeSymbolsWithColor('green'))(
           'should render legend colors for $selector for legendType $legendType',
-          ({ legendType, selector, expectedAttributes }) => {
-            const { container } = rechartsTestRender(
+          async ({ legendType, selector, expectedAttributes }) => {
+            const { container } = await rechartsTestRender(
               <AreaChart width={500} height={500} data={numericalData}>
                 <Legend />
                 <Area dataKey="percent" legendType={legendType} stroke="none" fill="green" />
               </AreaChart>,
             );
-            assertExpectedAttributes(container, selector, expectedAttributes);
+            await assertExpectedAttributes(container, selector, expectedAttributes);
           },
         );
       });
 
-      it('should prefer Legend.iconType over Area.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Area.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <AreaChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Area dataKey="value" legendType="square" />
@@ -2376,12 +2448,12 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithColor('#3182bd').find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
-    it('should render legend', () => {
-      const { container } = rechartsTestRender(
+    it('should render legend', async () => {
+      const { container } = await rechartsTestRender(
         <AreaChart width={500} height={500} data={numericalData}>
           <Legend />
           <Area dataKey="value" />
@@ -2393,8 +2465,8 @@ describe('<Legend />', () => {
   });
 
   describe('as a child of AreaChart when data is defined on graphical item', () => {
-    it('should render legend', () => {
-      const { container } = rechartsTestRender(
+    it('should render legend', async () => {
+      const { container } = await rechartsTestRender(
         <AreaChart width={500} height={500}>
           <Legend />
           <Area dataKey="value" data={numericalData} />
@@ -2406,8 +2478,8 @@ describe('<Legend />', () => {
   });
 
   describe('as a child of ComposedChart', () => {
-    it('should render one legend item for each allowed graphical element, even if their dataKey does not match the data or is undefined', () => {
-      const { container, queryByText } = rechartsTestRender(
+    it('should render one legend item for each allowed graphical element, even if their dataKey does not match the data or is undefined', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <ComposedChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Area dataKey="value" />
@@ -2430,13 +2502,13 @@ describe('<Legend />', () => {
         { fill: 'none', textContent: 'value' },
         { fill: 'none', textContent: 'wrong' },
       ]);
-      expect.soft(queryByText('wrong but invisible')).not.toBeInTheDocument();
-      expect.soft(queryByText('unknown but invisible')).not.toBeInTheDocument();
-      expect.soft(queryByText('bad but invisible')).not.toBeInTheDocument();
+      await expect.element(getByText('wrong but invisible', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('unknown but invisible', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('bad but invisible', { exact: true })).not.toBeInTheDocument();
     });
 
-    it('should not render legend of unsupported graphical element', () => {
-      const { container } = rechartsTestRender(
+    it('should not render legend of unsupported graphical element', async () => {
+      const { container } = await rechartsTestRender(
         <ComposedChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Pie dataKey="pie datakey" />
@@ -2447,8 +2519,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, null);
     });
 
-    it('should render legend of Scatter even though it is not a supported graphical element inside ComposedChart', () => {
-      const { container } = rechartsTestRender(
+    it('should render legend of Scatter even though it is not a supported graphical element inside ComposedChart', async () => {
+      const { container } = await rechartsTestRender(
         <ComposedChart width={500} height={500} data={categoricalData}>
           <Legend />
           <Scatter dataKey="scatter datakey" />
@@ -2457,8 +2529,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ textContent: 'scatter datakey', fill: undefined }]);
     });
 
-    it('should not implicitly read `name` and `fill` properties from the data array', () => {
-      const { container, queryByText } = rechartsTestRender(
+    it('should not implicitly read `name` and `fill` properties from the data array', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <ComposedChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Area dataKey="value" />
@@ -2471,32 +2543,32 @@ describe('<Legend />', () => {
         { fill: 'none', textContent: 'color' },
         { fill: 'none', textContent: 'value' },
       ]);
-      expect.soft(queryByText('name1')).not.toBeInTheDocument();
-      expect.soft(queryByText('name2')).not.toBeInTheDocument();
-      expect.soft(queryByText('name3')).not.toBeInTheDocument();
-      expect.soft(queryByText('name4')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill1"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill2"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill3"]')).not.toBeInTheDocument();
-      expect.soft(container.querySelector('[fill="fill4"]')).not.toBeInTheDocument();
+      await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
+      await expect.element(getByText('name4', { exact: true })).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill1"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill2"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill3"]')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('[fill="fill4"]')).not.toBeInTheDocument();
     });
 
     describe('legendType symbols for Area', () => {
       test.each(expectedLegendTypeSymbolsWithColor('#3182bd'))(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <ComposedChart width={500} height={500} data={categoricalData}>
               <Legend />
               <Area dataKey="value" legendType={legendType} />
             </ComposedChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Area.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Area.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <ComposedChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Area dataKey="value" legendType="square" />
@@ -2505,26 +2577,26 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithColor('#3182bd').find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
     describe('legendType symbols for Bar', () => {
       test.each(expectedLegendTypeSymbolsWithoutColor)(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <ComposedChart width={500} height={500} data={categoricalData}>
               <Legend />
               <Bar dataKey="value" legendType={legendType} />
             </ComposedChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Bar.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Bar.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <ComposedChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Bar dataKey="value" legendType="square" />
@@ -2533,26 +2605,26 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithoutColor.find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
     describe('legendType symbols for Line', () => {
       test.each(expectedLegendTypeSymbolsWithColor('#3182bd'))(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <ComposedChart width={500} height={500} data={categoricalData}>
               <Legend />
               <Line dataKey="value" legendType={legendType} />
             </ComposedChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Line.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Line.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <ComposedChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Line dataKey="value" legendType="square" />
@@ -2561,14 +2633,14 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithColor('#3182bd').find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
   });
 
   describe('as a child of PieChart', () => {
-    it('should render one legend item for each segment, and it should use nameKey as its label', () => {
-      const { container } = rechartsTestRender(
+    it('should render one legend item for each segment, and it should use nameKey as its label', async () => {
+      const { container } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
@@ -2585,8 +2657,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="unknown" />
@@ -2604,8 +2676,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should implicitly use special `name` and `fill` properties from data as legend labels and colors', () => {
-      const { container } = rechartsTestRender(
+    it('should implicitly use special `name` and `fill` properties from data as legend labels and colors', async () => {
+      const { container } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={dataWithSpecialNameAndFillProperties} dataKey="value" />
@@ -2621,7 +2693,7 @@ describe('<Legend />', () => {
     });
 
     describe('itemSorter', () => {
-      it('should sort items by the special name property by default', () => {
+      it('should sort items by the special name property by default', async () => {
         const dataWithSpecialNameAndFillPropertiesInDifferentOrder = [
           { name: 'name2', fill: 'fill2', value: 34 },
           { name: 'name1', fill: 'fill1', value: 12 },
@@ -2629,7 +2701,7 @@ describe('<Legend />', () => {
           { name: 'name3', fill: 'fill3', value: 56 },
         ];
 
-        const { container } = rechartsTestRender(
+        const { container } = await rechartsTestRender(
           <PieChart width={500} height={500}>
             <Legend />
             <Pie data={dataWithSpecialNameAndFillPropertiesInDifferentOrder} dataKey="value" />
@@ -2646,8 +2718,8 @@ describe('<Legend />', () => {
 
       it.each(['dataKey', null] as const)(
         'should leave items in the original data order when itemSorter=%s',
-        itemSorter => {
-          const { container } = rechartsTestRender(
+        async itemSorter => {
+          const { container } = await rechartsTestRender(
             <PieChart width={500} height={500}>
               <Legend itemSorter={itemSorter} />
               <Pie data={numericalData} dataKey="percent" nameKey="value" />
@@ -2666,8 +2738,8 @@ describe('<Legend />', () => {
       );
     });
 
-    it('should disappear after Pie data is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Pie data is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" />
@@ -2688,7 +2760,7 @@ describe('<Legend />', () => {
         { fill: '#808080', textContent: 'percent' },
       ]);
 
-      rerender(
+      await rerender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={[]} dataKey="percent" />
@@ -2704,8 +2776,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should disappear after Pie itself is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Pie itself is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" />
@@ -2726,7 +2798,7 @@ describe('<Legend />', () => {
         { fill: '#808080', textContent: 'percent' },
       ]);
 
-      rerender(
+      await rerender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
@@ -2741,8 +2813,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should update legend if Pie data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if Pie data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
@@ -2757,7 +2829,7 @@ describe('<Legend />', () => {
         { fill: '#808080', textContent: 'Skill' },
       ]);
 
-      rerender(
+      await rerender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
@@ -2772,8 +2844,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should update legend if nameKey changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if nameKey changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
@@ -2788,7 +2860,7 @@ describe('<Legend />', () => {
         { fill: '#808080', textContent: 'Skill' },
       ]);
 
-      rerender(
+      await rerender(
         <PieChart width={500} height={500}>
           <Legend />
           <Pie data={numericalData} dataKey="percent" nameKey="percent" />
@@ -2807,19 +2879,19 @@ describe('<Legend />', () => {
     describe('legendType symbols', () => {
       test.each(expectedLegendTypeSymbolsWithColor('#808080'))(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <PieChart width={500} height={500}>
               <Legend />
               <Pie data={numericalData} dataKey="percent" legendType={legendType} />
             </PieChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Pie.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Pie.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <PieChart width={500} height={500}>
             <Legend iconType="circle" />
             <Pie data={numericalData} dataKey="percent" legendType="square" />
@@ -2828,46 +2900,50 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithColor('#808080').find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
   });
 
   describe('as a child of RadarChart', () => {
-    it('should render one rect legend item for each Radar, with default class and style attributes', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should render one rect legend item for each Radar, with default class and style attributes', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="percent" />
           <Radar dataKey="value" />
         </RadarChart>,
       );
-      expect(getByText('value')).toBeInTheDocument();
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('value', { exact: true })).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
 
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(2);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
       expect.soft(legendItems[1].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[1].getAttribute('class')).toBe('recharts-legend-item legend-item-1');
-      expect
-        .soft(legendItems[1].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-1');
+      await expect
+        .element(page.elementLocator(legendItems[1]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="unknown" />
@@ -2876,56 +2952,60 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'unknown' }]);
     });
 
-    it('should change color and className of hidden Radar', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should change color and className of hidden Radar', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend inactiveColor="yellow" />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Radar dataKey="percent" stroke="red" hide />
         </RadarChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor('yellow').find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should have a default inactive Radar legend color', () => {
-      const { container, getByText } = rechartsTestRender(
+    it('should have a default inactive Radar legend color', async () => {
+      const { container, getByText } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           {/* this will ignore the stroke and use inactive color on legend */}
           <Radar dataKey="percent" stroke="red" hide />
         </RadarChart>,
       );
-      expect(getByText('percent')).toBeInTheDocument();
+      await expect.element(getByText('percent', { exact: true })).toBeInTheDocument();
       const legendItems = assertHasLegend(container);
 
       expect.soft(legendItems[0].getAttributeNames()).toEqual(['class', 'style']);
-      expect.soft(legendItems[0].getAttribute('class')).toBe('recharts-legend-item legend-item-0 inactive');
-      expect
-        .soft(legendItems[0].getAttribute('style'))
-        .toBe('display: inline-block; margin-right: 10px; white-space: nowrap;');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('class', 'recharts-legend-item legend-item-0 inactive');
+      await expect
+        .element(page.elementLocator(legendItems[0]))
+        .toHaveAttribute('style', 'display: inline-block; margin-right: 10px; white-space: nowrap;');
 
       // in absence of explicit `legendType`, Radar should default to rect
       const findResult = expectedLegendTypeSymbolsWithColor('#ccc').find(tc => tc.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render one empty legend item if Radar has no dataKey', () => {
-      const { container } = rechartsTestRender(
+    it('should render one empty legend item if Radar has no dataKey', async () => {
+      const { container } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar />
@@ -2935,8 +3015,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: '' }]);
     });
 
-    it('should set legend item from `name` prop on Radar, and update it after rerender', () => {
-      const { rerender, container } = rechartsTestRender(
+    it('should set legend item from `name` prop on Radar, and update it after rerender', async () => {
+      const { rerender, container } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="percent" name="%" />
@@ -2944,7 +3024,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: null, textContent: '%' }]);
 
-      rerender(
+      await rerender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="percent" name="Percent" />
@@ -2953,8 +3033,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'Percent' }]);
     });
 
-    it('should not implicitly read `name` and `fill` properties from the data array', () => {
-      const { container } = rechartsTestRender(
+    it('should not implicitly read `name` and `fill` properties from the data array', async () => {
+      const { container } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Radar dataKey="value" />
@@ -2963,8 +3043,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'value' }]);
     });
 
-    it('should disappear after Radar element is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after Radar element is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Radar dataKey="name" />
@@ -2976,7 +3056,7 @@ describe('<Legend />', () => {
         { fill: null, textContent: 'value' },
       ]);
 
-      rerender(
+      await rerender(
         <RadarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Radar dataKey="value" />
@@ -2985,8 +3065,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, [{ fill: null, textContent: 'value' }]);
     });
 
-    it('should update legend if Radar data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if Radar data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="value" />
@@ -2994,7 +3074,7 @@ describe('<Legend />', () => {
       );
       expectLegendLabels(container, [{ fill: null, textContent: 'value' }]);
 
-      rerender(
+      await rerender(
         <RadarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Radar dataKey="percent" />
@@ -3006,19 +3086,19 @@ describe('<Legend />', () => {
     describe('legendType symbols without color', () => {
       test.each(expectedLegendTypeSymbolsWithoutColor)(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadarChart width={500} height={500} data={numericalData}>
               <Legend />
               <Radar dataKey="percent" legendType={legendType} />
             </RadarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Radar.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Radar.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <RadarChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Radar dataKey="value" legendType="square" />
@@ -3027,21 +3107,21 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithoutColor.find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
     describe('legendType symbols with explicit fill', () => {
       test.each(expectedLegendTypeSymbolsWithColor('red'))(
         'should render legend colors for $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadarChart width={500} height={500} data={numericalData}>
               <Legend />
               <Radar dataKey="percent" legendType={legendType} fill="red" />
             </RadarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
@@ -3049,14 +3129,14 @@ describe('<Legend />', () => {
     describe('legendType symbols with explicit stroke', () => {
       test.each(expectedLegendTypeSymbolsWithColor('yellow'))(
         'should render legend colors for $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadarChart width={500} height={500} data={numericalData}>
               <Legend />
               <Radar dataKey="percent" legendType={legendType} stroke="yellow" />
             </RadarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
@@ -3064,14 +3144,14 @@ describe('<Legend />', () => {
     describe('legendType symbols with both fill and stroke', () => {
       test.each(expectedLegendTypeSymbolsWithColor('gold'))(
         'should render legend colors for $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadarChart width={500} height={500} data={numericalData}>
               <Legend />
               <Radar dataKey="percent" legendType={legendType} stroke="gold" fill="green" />
             </RadarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
@@ -3079,22 +3159,22 @@ describe('<Legend />', () => {
     describe('legendType symbols with stroke = none', () => {
       test.each(expectedLegendTypeSymbolsWithColor('green'))(
         'should render legend colors for $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadarChart width={500} height={500} data={numericalData}>
               <Legend />
               <Radar dataKey="percent" legendType={legendType} stroke="none" fill="green" />
             </RadarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
   });
 
   describe('as a child of RadialBarChart', () => {
-    it('should render one legend item for each segment, with no label text, and rect icon with no color, by default', () => {
-      const { container } = rechartsTestRender(
+    it('should render one legend item for each segment, with no label text, and rect icon with no color, by default', async () => {
+      const { container } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend />
           <RadialBar dataKey="percent" label />
@@ -3102,19 +3182,21 @@ describe('<Legend />', () => {
       );
       const legendItems = assertHasLegend(container);
       expect(legendItems).toHaveLength(numericalData.length);
-      legendItems.forEach(legendItem => {
-        const legendItemText = legendItem.querySelector('.recharts-legend-item-text');
-        expect(legendItemText).toBeInTheDocument();
-        expect(legendItemText).toBeEmptyDOMElement();
-      });
+      for (const legendItem of legendItems) {
+        const legendItemText = page.elementLocator(legendItem).getByCSS('.recharts-legend-item-text');
+        // eslint-disable-next-line no-await-in-loop
+        await expect.element(legendItemText).toBeInTheDocument();
+        // eslint-disable-next-line no-await-in-loop
+        await expect.element(legendItemText).toBeEmptyDOMElement();
+      }
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(i => i.legendType === 'rect');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
 
-    it('should render a legend item even if the dataKey does not match anything from the data', () => {
-      const { container } = rechartsTestRender(
+    it('should render a legend item even if the dataKey does not match anything from the data', async () => {
+      const { container } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend />
           <RadialBar dataKey="unknown" />
@@ -3130,9 +3212,9 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should use special `name` and `fill` properties from data as legend labels and colors', () => {
+    it('should use special `name` and `fill` properties from data as legend labels and colors', async () => {
       // I think this is the only way to set legend labels for RadialBarChart?
-      const { container } = rechartsTestRender(
+      const { container } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <RadialBar dataKey="percent" />
@@ -3147,8 +3229,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should use special `name` and `fill` properties from data as legend labels and colors, even if the dataKey does not match', () => {
-      const { container } = rechartsTestRender(
+    it('should use special `name` and `fill` properties from data as legend labels and colors, even if the dataKey does not match', async () => {
+      const { container } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <RadialBar dataKey="unknown" />
@@ -3162,8 +3244,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should disappear after RadialBar itself is removed', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should disappear after RadialBar itself is removed', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend />
           <RadialBar dataKey="percent" />
@@ -3185,7 +3267,7 @@ describe('<Legend />', () => {
         { fill: null, textContent: '' },
       ]);
 
-      rerender(
+      await rerender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend />
           <RadialBar dataKey="value" />
@@ -3200,7 +3282,7 @@ describe('<Legend />', () => {
         { fill: null, textContent: '' },
       ]);
 
-      rerender(
+      await rerender(
         <RadialBarChart width={500} height={500}>
           <Legend />
         </RadialBarChart>,
@@ -3208,8 +3290,8 @@ describe('<Legend />', () => {
       expectLegendLabels(container, null);
     });
 
-    it('should update legend if RadialBarChart data changes', () => {
-      const { container, rerender } = rechartsTestRender(
+    it('should update legend if RadialBarChart data changes', async () => {
+      const { container, rerender } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend />
           <RadialBar dataKey="percent" />
@@ -3225,7 +3307,7 @@ describe('<Legend />', () => {
         { fill: null, textContent: '' },
       ]);
 
-      rerender(
+      await rerender(
         <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <RadialBar dataKey="value" />
@@ -3242,20 +3324,20 @@ describe('<Legend />', () => {
     describe('legendType symbols', () => {
       test.each(expectedLegendTypeSymbolsWithoutColor)(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <RadialBarChart width={500} height={500} data={numericalData}>
               <Legend />
               <RadialBar dataKey="percent" legendType={legendType} />
             </RadialBarChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
 
-    it('should prefer Legend.iconType over RadialBar.legendType', () => {
-      const { container } = rechartsTestRender(
+    it('should prefer Legend.iconType over RadialBar.legendType', async () => {
+      const { container } = await rechartsTestRender(
         <RadialBarChart width={500} height={500} data={numericalData}>
           <Legend iconType="circle" />
           <RadialBar dataKey="value" legendType="square" />
@@ -3264,13 +3346,13 @@ describe('<Legend />', () => {
       const findResult = expectedLegendTypeSymbolsWithoutColor.find(li => li.legendType === 'circle');
       assertNotNull(findResult);
       const { selector, expectedAttributes } = findResult;
-      assertExpectedAttributes(container, selector, expectedAttributes);
+      await assertExpectedAttributes(container, selector, expectedAttributes);
     });
   });
 
   describe('as a child of ScatterChart', () => {
-    it('should render one legend item for each Scatter', () => {
-      const { container } = rechartsTestRender(
+    it('should render one legend item for each Scatter', async () => {
+      const { container } = await rechartsTestRender(
         <ScatterChart width={500} height={500} data={numericalData}>
           <Legend />
           <Scatter dataKey="percent" />
@@ -3283,8 +3365,8 @@ describe('<Legend />', () => {
       ]);
     });
 
-    it('should not use `fill` from data for the legend fill', () => {
-      const { container } = rechartsTestRender(
+    it('should not use `fill` from data for the legend fill', async () => {
+      const { container } = await rechartsTestRender(
         <ScatterChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
           <Legend />
           <Scatter dataKey="value" />
@@ -3296,19 +3378,19 @@ describe('<Legend />', () => {
     describe('legendType symbols', () => {
       test.each(expectedLegendTypeSymbolsWithoutColor)(
         'should render element $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <ScatterChart width={500} height={500} data={numericalData}>
               <Legend />
               <Scatter dataKey="percent" legendType={legendType} />
             </ScatterChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
 
-      it('should prefer Legend.iconType over Scatter.legendType', () => {
-        const { container } = rechartsTestRender(
+      it('should prefer Legend.iconType over Scatter.legendType', async () => {
+        const { container } = await rechartsTestRender(
           <ScatterChart width={500} height={500} data={numericalData}>
             <Legend iconType="circle" />
             <Scatter dataKey="value" legendType="square" />
@@ -3317,21 +3399,21 @@ describe('<Legend />', () => {
         const findResult = expectedLegendTypeSymbolsWithoutColor.find(li => li.legendType === 'circle');
         assertNotNull(findResult);
         const { selector, expectedAttributes } = findResult;
-        assertExpectedAttributes(container, selector, expectedAttributes);
+        await assertExpectedAttributes(container, selector, expectedAttributes);
       });
     });
 
     describe('legendType symbols with explicit fill', () => {
       test.each(expectedLegendTypeSymbolsWithColor('red'))(
         'should render legend colors for $selector for legendType $legendType',
-        ({ legendType, selector, expectedAttributes }) => {
-          const { container } = rechartsTestRender(
+        async ({ legendType, selector, expectedAttributes }) => {
+          const { container } = await rechartsTestRender(
             <ScatterChart width={500} height={500} data={numericalData}>
               <Legend />
               <Scatter dataKey="percent" legendType={legendType} fill="red" />
             </ScatterChart>,
           );
-          assertExpectedAttributes(container, selector, expectedAttributes);
+          await assertExpectedAttributes(container, selector, expectedAttributes);
         },
       );
     });
@@ -3346,18 +3428,18 @@ describe('<Legend />', () => {
       </ScatterChart>
     ));
 
-    it('should render legend', () => {
-      const { container } = renderTestCase();
+    it('should render legend', async () => {
+      const { container } = await renderTestCase();
       expectLegendLabels(container, [{ fill: undefined, textContent: 'value' }]);
     });
   });
 
   describe('click events', () => {
-    it('should call onClick when clicked', () => {
+    it('should call onClick when clicked', async () => {
       const onClick: Mock<
         (payload: LegendPayload, index: number, ev: React.MouseEvent<HTMLElement, MouseEvent>) => void
       > = vi.fn();
-      const { container } = rechartsTestRender(
+      const { container } = await rechartsTestRender(
         <ScatterChart width={500} height={500} data={numericalData}>
           <Legend onClick={onClick} />
           <Scatter dataKey="percent" />
@@ -3366,7 +3448,7 @@ describe('<Legend />', () => {
       expect(onClick).toHaveBeenCalledTimes(0);
       const legend = container.querySelector('.recharts-legend-item');
       assertNotNull(legend);
-      fireEvent.click(legend);
+      await userEvent.click(legend);
       expect(onClick).toHaveBeenCalledTimes(1);
       const expectedPayload: LegendPayload = {
         color: undefined,
@@ -3400,8 +3482,8 @@ describe('<Legend />', () => {
   });
 
   describe('legend portal', () => {
-    it('nothing is rendered if legend portal is undefined and there is no chart context', () => {
-      const { container } = rechartsTestRender(
+    it('nothing is rendered if legend portal is undefined and there is no chart context', async () => {
+      const { container } = await rechartsTestRender(
         <Surface height={100} width={100}>
           <Legend portal={undefined} />
           <Scatter data={numericalData} dataKey="percent" />
@@ -3411,8 +3493,8 @@ describe('<Legend />', () => {
       expect(container.querySelectorAll('.recharts-legend-wrapper')).toHaveLength(0);
     });
 
-    it('should render outside of SVG, as a direct child of recharts-wrapper by default', () => {
-      const { container } = rechartsTestRender(
+    it('should render outside of SVG, as a direct child of recharts-wrapper by default', async () => {
+      const { container } = await rechartsTestRender(
         <ScatterChart width={500} height={500} data={numericalData}>
           <Legend />
           <Scatter dataKey="percent" />
@@ -3420,10 +3502,10 @@ describe('<Legend />', () => {
       );
 
       expect(container.querySelectorAll('.recharts-wrapper svg .recharts-legend-wrapper')).toHaveLength(0);
-      expect(container.querySelector('.recharts-wrapper > .recharts-legend-wrapper')).toBeVisible();
+      await expect.element(page.getByCSS('.recharts-wrapper > .recharts-legend-wrapper')).toBeVisible();
     });
 
-    it('should render in a custom portal if "portal" prop is set', () => {
+    it('should render in a custom portal if "portal" prop is set', async () => {
       function Example() {
         const [portalRef, setPortalRef] = useState<HTMLElement | null>(null);
 
@@ -3444,22 +3526,22 @@ describe('<Legend />', () => {
           </>
         );
       }
-      const { container } = rechartsTestRender(<Example />);
+      const { container } = await rechartsTestRender(<Example />);
 
-      const legendWrapper = container.querySelector('.recharts-legend-wrapper');
+      const legendWrapper = page.elementLocator(container).getByCSS('.recharts-legend-wrapper');
 
-      expect(container.querySelector('.recharts-wrapper .recharts-legend-wrapper')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-wrapper .recharts-legend-wrapper')).not.toBeInTheDocument();
       // assert we've removed internal recharts legend wrapper styles and those that the user adds are included
-      expect(legendWrapper).not.toHaveStyle({ position: 'absolute' });
-      expect(legendWrapper).toHaveStyle({ margin: '20px' });
-      expect(
-        container.querySelector('[data-testid="my-custom-portal-target"] > .recharts-legend-wrapper'),
-      ).toBeVisible();
+      await expect.element(legendWrapper).not.toHaveStyle({ position: 'absolute' });
+      await expect.element(legendWrapper).toHaveStyle({ margin: '20px' });
+      await expect
+        .element(page.getByCSS('[data-testid="my-custom-portal-target"] > .recharts-legend-wrapper'))
+        .toBeVisible();
     });
   });
 
   describe('state integration', () => {
-    it('should publish its size, and then update it when removed from DOM', () => {
+    it('should publish its size, and then update it when removed from DOM', async () => {
       mockGetBoundingClientRect({ width: 3, height: 11 });
       const legendSpy = vi.fn();
       const Comp = (): null => {
@@ -3467,7 +3549,7 @@ describe('<Legend />', () => {
         return null;
       };
 
-      const { rerender } = rechartsTestRender(
+      const { rerender } = await rechartsTestRender(
         <BarChart width={500} height={500} data={numericalData}>
           <Legend />
           <Comp />
@@ -3481,7 +3563,7 @@ describe('<Legend />', () => {
       expect(legendSpy).toHaveBeenLastCalledWith(expectedAfterFirstRender);
       expect(legendSpy).toHaveBeenCalledTimes(2);
 
-      rerender(
+      await rerender(
         <BarChart width={500} height={500} data={numericalData}>
           <Comp />
         </BarChart>,

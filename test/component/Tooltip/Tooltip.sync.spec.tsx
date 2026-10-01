@@ -1,6 +1,7 @@
 import React, { ComponentType, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, test } from 'vitest';
-import { fireEvent, queryByText, render } from '@testing-library/react';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 
 import {
   Area,
@@ -35,7 +36,7 @@ import {
   hideTooltip,
   showTooltip,
   showTooltipOnCoordinate,
-} from './tooltipTestHelpers';
+} from '../../helper/browser/tooltipTestHelpers';
 import {
   areaChartMouseHoverTooltipSelector,
   barChartMouseHoverTooltipSelector,
@@ -46,7 +47,10 @@ import {
   radarChartMouseHoverTooltipSelector,
   radialBarChartMouseHoverTooltipSelector,
 } from './tooltipMouseHoverSelectors';
-import { createSelectorTestCase, createSynchronisedSelectorTestCase } from '../../helper/createSelectorTestCase';
+import {
+  createSelectorTestCase,
+  createSynchronisedSelectorTestCase,
+} from '../../helper/browser/createSelectorTestCase';
 import { selectSyncId, selectSyncMethod } from '../../../src/state/selectors/rootPropsSelectors';
 import { createRechartsStore } from '../../../src/state/store';
 import {
@@ -62,6 +66,7 @@ import { selectTooltipPayloadSearcher } from '../../../src/state/selectors/selec
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { selectChartViewBox } from '../../../src/state/selectors/selectChartOffsetInternal';
 import { assertNotNull } from '../../helper/assertNotNull';
+import { fireEvent } from '../../helper/browser/syntheticEvents';
 
 type TooltipSyncTestCase = {
   // For identifying which test is running
@@ -342,9 +347,9 @@ describe('Tooltip synchronization', () => {
         </>
       ));
 
-      test(`${name} shows tooltip when synchronized with ${name}`, () => {
+      test(`${name} shows tooltip when synchronized with ${name}`, async () => {
         const { chartOne: chartOneContent, chartTwo: chartTwoContent } = tooltipContent;
-        const { container, debug } = renderTestCase();
+        const { container, debug } = await renderTestCase();
         // use ids to separate the charts so the `.recharts-wrapper` class can be used to activate the tooltip
         const wrapperOne = container.querySelector('#chartOne');
         assertNotNull(wrapperOne);
@@ -352,36 +357,32 @@ describe('Tooltip synchronization', () => {
         assertNotNull(wrapperTwo);
 
         // target the first chart to show the tooltip
-        showTooltip(wrapperOne, mouseHoverSelector, debug);
+        await showTooltip(wrapperOne, mouseHoverSelector, debug);
 
         // target the second chart to see if it has the synchronized tooltip showing
         const tooltip = getTooltip(wrapperTwo);
-        expect(tooltip).toBeVisible();
+        await expect.element(page.elementLocator(tooltip)).toBeVisible();
 
-        [
-          { wrapper: wrapperOne, content: chartOneContent },
-          { wrapper: wrapperTwo, content: chartTwoContent },
-        ].forEach(({ wrapper, content }) => {
-          const tooltipContentName = wrapper.querySelector('.recharts-tooltip-item-name');
-          assertNotNull(tooltipContentName);
-          const tooltipContentValue = wrapper.querySelector('.recharts-tooltip-item-value');
-          assertNotNull(tooltipContentValue);
-          expect(tooltipContentName).not.toBeNull();
-          expect(tooltipContentValue).not.toBeNull();
-          expect(tooltipContentName).toBeInTheDocument();
-          expect(tooltipContentValue).toBeInTheDocument();
-          expect(tooltipContentName.textContent).toEqual(content.name);
-          expect(tooltipContentValue.textContent).toEqual(content.value);
-        });
+        const expectTooltipContent = async (wrapper: Element, content: { name: string; value: string }) => {
+          const tooltipContentName = page.elementLocator(wrapper).getByCSS('.recharts-tooltip-item-name');
+          const tooltipContentValue = page.elementLocator(wrapper).getByCSS('.recharts-tooltip-item-value');
+          await expect.element(tooltipContentName).toBeInTheDocument();
+          await expect.element(tooltipContentValue).toBeInTheDocument();
+          // Exact text checks. toHaveTextContent only checks that the text is included.
+          expect(tooltipContentName.element().textContent).toEqual(content.name);
+          expect(tooltipContentValue.element().textContent).toEqual(content.value);
+        };
+        await expectTooltipContent(wrapperOne, chartOneContent);
+        await expectTooltipContent(wrapperTwo, chartTwoContent);
       });
 
-      test(`${name} should put the syncId into redux state`, () => {
-        const { spy } = renderTestCase(selectSyncId);
+      test(`${name} should put the syncId into redux state`, async () => {
+        const { spy } = await renderTestCase(selectSyncId);
         expectLastCalledWith(spy, 'tooltipSync');
       });
 
-      test(`${name} should select syncMethod`, () => {
-        const { spy } = renderTestCase(selectSyncMethod);
+      test(`${name} should select syncMethod`, async () => {
+        const { spy } = await renderTestCase(selectSyncMethod);
         expectLastCalledWith(spy, 'index');
       });
     },
@@ -429,35 +430,35 @@ describe('Tooltip synchronization', () => {
       ),
     );
 
-    test('should synchronize the data based on the tooltip label - not value of the data', () => {
-      const { wrapperA, wrapperB, debug } = renderTestCase();
+    test('should synchronize the data based on the tooltip label - not value of the data', async () => {
+      const { wrapperA, wrapperB, debug } = await renderTestCase();
 
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
-      expectTooltipPayload(wrapperA, 'Page C', ['uv : 500']);
-      expectTooltipPayload(wrapperB, 'Page C', ['pv : 1500']);
+      await expectTooltipPayload(wrapperA, 'Page C', ['uv : 500']);
+      await expectTooltipPayload(wrapperB, 'Page C', ['pv : 1500']);
 
-      hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
 
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
     });
 
-    it('should select tooltip payload searcher', () => {
-      const { spyA, spyB } = renderTestCase(selectTooltipPayloadSearcher);
+    it('should select tooltip payload searcher', async () => {
+      const { spyA, spyB } = await renderTestCase(selectTooltipPayloadSearcher);
       expect(spyA).toHaveBeenLastCalledWith(expect.any(Function));
       expect(spyB).toHaveBeenLastCalledWith(expect.any(Function));
     });
 
-    it('should synchronise the y-coordinate', () => {
-      const { wrapperA, spyA, spyB, debug } = renderTestCase(state =>
+    it('should synchronise the y-coordinate', async () => {
+      const { wrapperA, spyA, spyB, debug } = await renderTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       expect(spyA).toHaveBeenLastCalledWith({ x: 197, y: 200 });
       expect(spyB).toHaveBeenLastCalledWith({ x: 263, y: 200 });
@@ -542,44 +543,44 @@ describe('Tooltip synchronization', () => {
       ),
     );
 
-    test('chart B tooltip should remain active when chart C cannot match the synced label', () => {
+    test('chart B tooltip should remain active when chart C cannot match the synced label', async () => {
       // This tests the cascading counter-emission bug:
       // When Chart A hovers over "Day 3" (which Chart C doesn't have),
       // Chart C should NOT emit a counter-sync event that clears Chart B's tooltip.
-      const { wrapperA, wrapperB, wrapperC, debug } = renderThreeChartTestCase();
+      const { wrapperA, wrapperB, wrapperC, debug } = await renderThreeChartTestCase();
 
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       // Chart A shows tooltip at the hovered point
-      expectTooltipPayload(wrapperA, 'Day 3', ['uv : 300']);
+      await expectTooltipPayload(wrapperA, 'Day 3', ['uv : 300']);
       // Chart B should sync and show tooltip — NOT be cleared by Chart C's counter-emission
-      expectTooltipPayload(wrapperB, 'Day 3', ['pv : 350']);
+      await expectTooltipPayload(wrapperB, 'Day 3', ['pv : 350']);
       // Chart C has no 'Day 3' entry, so its tooltip should be hidden
       assertNotNull(wrapperC);
-      expectTooltipNotVisible(wrapperC);
+      await expectTooltipNotVisible(wrapperC);
     });
 
-    test('chart B sync state should show active tooltip even when chart C has no matching label', () => {
-      const { spyB, wrapperA, debug } = renderThreeChartTestCase(state =>
+    test('chart B sync state should show active tooltip even when chart C has no matching label', async () => {
+      const { spyB, wrapperA, debug } = await renderThreeChartTestCase(state =>
         selectIsTooltipActive(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       // Chart B's tooltip should be active via sync — not cleared by Chart C's counter-emission
       // "Day 3" is at index 2 in Chart B's data
       expectLastCalledWith(spyB, { isActive: true, activeIndex: '2' });
     });
 
-    test('all synced charts deactivate when the source chart mouse leaves', () => {
-      const { spyA, spyB, spyC, wrapperA, debug } = renderThreeChartTestCase(state =>
+    test('all synced charts deactivate when the source chart mouse leaves', async () => {
+      const { spyA, spyB, spyC, wrapperA, debug } = await renderThreeChartTestCase(state =>
         selectIsTooltipActive(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       // Verify active state before deactivation
       expectLastCalledWith(spyA, { isActive: true, activeIndex: '2' });
@@ -587,7 +588,7 @@ describe('Tooltip synchronization', () => {
       // Chart C has no 'Day 3' entry — it should never become active during sync
       expectLastCalledWith(spyC, { isActive: false, activeIndex: null });
 
-      hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
 
       // After mouseLeave, the deactivation sync event (active: false, sourceViewBox: undefined)
       // should propagate to all charts, clearing their tooltips
@@ -598,13 +599,13 @@ describe('Tooltip synchronization', () => {
   });
 
   describe('selectActiveCoordinate', () => {
-    it('should return undefined for initial state', () => {
+    it('should return undefined for initial state', async () => {
       const store = createRechartsStore();
       const actual = selectActiveCoordinate(store.getState(), 'axis', 'hover', undefined);
       expect(actual).toEqual(undefined);
     });
 
-    it('should return coordinate after mouseMoveAction', () => {
+    it('should return coordinate after mouseMoveAction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setMouseOverAxisIndex({
@@ -617,7 +618,7 @@ describe('Tooltip synchronization', () => {
       expect(actual).toEqual({ x: 3, y: 4 });
     });
 
-    it('should return coordinate after setSyncInteraction', () => {
+    it('should return coordinate after setSyncInteraction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setSyncInteraction({
@@ -636,7 +637,7 @@ describe('Tooltip synchronization', () => {
   });
 
   describe('selectIsTooltipActive', () => {
-    it('should return false for initial state', () => {
+    it('should return false for initial state', async () => {
       const store = createRechartsStore();
       const actual = selectIsTooltipActive(store.getState(), 'axis', 'hover', undefined);
       expect(actual).toEqual({
@@ -645,7 +646,7 @@ describe('Tooltip synchronization', () => {
       });
     });
 
-    it('should return true after mouseMoveAction', () => {
+    it('should return true after mouseMoveAction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setMouseOverAxisIndex({
@@ -661,7 +662,7 @@ describe('Tooltip synchronization', () => {
       });
     });
 
-    it('should return true after setSyncInteraction', () => {
+    it('should return true after setSyncInteraction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setSyncInteraction({
@@ -683,13 +684,13 @@ describe('Tooltip synchronization', () => {
   });
 
   describe('selectActiveIndex', () => {
-    it('should return null for initial state', () => {
+    it('should return null for initial state', async () => {
       const store = createRechartsStore();
       const actual = selectActiveIndex(store.getState(), 'axis', 'hover', undefined);
       expect(actual).toEqual(null);
     });
 
-    it('should return index after mouseMoveAction', () => {
+    it('should return index after mouseMoveAction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setMouseOverAxisIndex({
@@ -702,7 +703,7 @@ describe('Tooltip synchronization', () => {
       expect(actual).toEqual('1');
     });
 
-    it('should return index after setSyncInteraction', () => {
+    it('should return index after setSyncInteraction', async () => {
       const store = createRechartsStore();
       store.dispatch(
         setSyncInteraction({
@@ -736,20 +737,20 @@ describe('Tooltip synchronization', () => {
       ),
     );
 
-    it('should synchronise active index for graphical items', () => {
-      const { wrapperA, spyA, spyB } = renderTestCase(selectActiveTooltipIndex);
+    it('should synchronise active index for graphical items', async () => {
+      const { wrapperA, spyA, spyB } = await renderTestCase(selectActiveTooltipIndex);
 
       expect(spyA).toHaveBeenLastCalledWith(null);
       expect(spyB).toHaveBeenLastCalledWith(null);
 
-      showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenLastCalledWith('3');
       expect(spyB).toHaveBeenLastCalledWith('3');
     });
 
-    it('should synchronise active index for tooltip', () => {
-      const { wrapperA, spyA, spyB } = renderTestCase(state =>
+    it('should synchronise active index for tooltip', async () => {
+      const { wrapperA, spyA, spyB } = await renderTestCase(state =>
         selectIsTooltipActive(state, 'axis', 'hover', undefined),
       );
 
@@ -762,7 +763,7 @@ describe('Tooltip synchronization', () => {
         isActive: false,
       });
 
-      showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenLastCalledWith({
         activeIndex: '3',
@@ -774,15 +775,15 @@ describe('Tooltip synchronization', () => {
       });
     });
 
-    it('should synchronise tooltip coordinate', () => {
-      const { wrapperA, spyA, spyB } = renderTestCase(state =>
+    it('should synchronise tooltip coordinate', async () => {
+      const { wrapperA, spyA, spyB } = await renderTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
       expect(spyA).toHaveBeenLastCalledWith(undefined);
       expect(spyB).toHaveBeenLastCalledWith(undefined);
 
-      showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenLastCalledWith({
         // This is returning lot more information than it should
@@ -813,29 +814,29 @@ describe('Tooltip synchronization', () => {
       });
     });
 
-    test('should show and hide synchronised tooltip', () => {
+    test('should show and hide synchronised tooltip', async () => {
       mockGetBoundingClientRect({
         width: 10,
         height: 10,
       });
-      const { wrapperA, wrapperB } = renderTestCase();
+      const { wrapperA, wrapperB } = await renderTestCase();
 
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
 
-      showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
-      expectTooltipPayload(wrapperA, 'Page D', ['Mike : 200']);
-      expectTooltipPayload(wrapperB, 'Page D', ['Mike : 200']);
+      await expectTooltipPayload(wrapperA, 'Page D', ['Mike : 200']);
+      await expectTooltipPayload(wrapperB, 'Page D', ['Mike : 200']);
 
       // The browser serializes inline style numbers to 6 significant digits
-      expectTooltipCoordinate(wrapperA, { x: 212.655, y: 212.655 });
-      expectTooltipCoordinate(wrapperB, { x: 212.655, y: 212.655 });
+      await expectTooltipCoordinate(wrapperA, { x: 212.655, y: 212.655 });
+      await expectTooltipCoordinate(wrapperB, { x: 212.655, y: 212.655 });
 
-      hideTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
+      await hideTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
     });
   });
 
@@ -866,71 +867,81 @@ describe('Tooltip synchronization', () => {
       ),
     );
 
-    it('should start with both tooltips hidden', () => {
-      const { wrapperA, wrapperB } = renderTestCase();
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+    it('should start with both tooltips hidden', async () => {
+      const { wrapperA, wrapperB } = await renderTestCase();
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
     });
 
-    it('should show both tooltips when hovering over chart A', () => {
-      const { wrapperA, wrapperB, spyA, spyB, debug } = renderTestCase(selectActiveTooltipIndex);
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+    it('should show both tooltips when hovering over chart A', async () => {
+      const { wrapperA, wrapperB, spyA, spyB, debug } = await renderTestCase(selectActiveTooltipIndex);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       expect(spyA).toHaveBeenLastCalledWith('2');
       expect(spyB).toHaveBeenLastCalledWith('2');
 
-      expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
+      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
     });
 
-    it('should continue showing both tooltips after mouse leaves the chart A - because of the active prop!', () => {
-      const { wrapperA, wrapperB, debug } = renderTestCase();
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
-      hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
-      expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+    it('should continue showing both tooltips after mouse leaves the chart A - because of the active prop!', async () => {
+      const { wrapperA, wrapperB, debug } = await renderTestCase();
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
+      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
     });
 
-    it('should show both tooltips when hovering over chart B', () => {
-      const { wrapperA, wrapperB, debug } = renderTestCase();
-      showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
-      expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+    it('should show both tooltips when hovering over chart B', async () => {
+      const { wrapperA, wrapperB, debug } = await renderTestCase();
+      await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
+      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
+      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
     });
 
-    it('should hide both tooltips after mouse leaves the chart B - because it has no active prop', () => {
-      const { wrapperA, wrapperB, debug } = renderTestCase();
-      showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
-      hideTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
-      expectTooltipNotVisible(wrapperA);
-      expectTooltipNotVisible(wrapperB);
+    it('should hide both tooltips after mouse leaves the chart B - because it has no active prop', async () => {
+      const { wrapperA, wrapperB, debug } = await renderTestCase();
+      await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
+      await hideTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
+      await expectTooltipNotVisible(wrapperA);
+      await expectTooltipNotVisible(wrapperB);
     });
 
-    it('after switching charts from B to A, it should follow the mouse and update coordinates on both charts', () => {
-      const { wrapperA, wrapperB, debug } = renderTestCase();
-      showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
-      hideTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
-      showTooltipOnCoordinate(wrapperA, lineChartMouseHoverTooltipSelector, { clientX: 100, clientY: 100 }, debug);
+    it('after switching charts from B to A, it should follow the mouse and update coordinates on both charts', async () => {
+      const { wrapperA, wrapperB, debug } = await renderTestCase();
+      await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
+      await hideTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
+      await showTooltipOnCoordinate(
+        wrapperA,
+        lineChartMouseHoverTooltipSelector,
+        { clientX: 100, clientY: 100 },
+        debug,
+      );
 
-      expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
-      expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
+      await expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
+      await expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
     });
 
-    it('after switching charts from A to B, it should follow the mouse and update coordinates on both charts', () => {
-      const { wrapperA, wrapperB, spyA, spyB, debug } = renderTestCase(selectActiveTooltipIndex);
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
-      hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
-      showTooltipOnCoordinate(wrapperB, lineChartMouseHoverTooltipSelector, { clientX: 100, clientY: 100 }, debug);
+    it('after switching charts from A to B, it should follow the mouse and update coordinates on both charts', async () => {
+      const { wrapperA, wrapperB, spyA, spyB, debug } = await renderTestCase(selectActiveTooltipIndex);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await showTooltipOnCoordinate(
+        wrapperB,
+        lineChartMouseHoverTooltipSelector,
+        { clientX: 100, clientY: 100 },
+        debug,
+      );
 
       expect(spyA).toHaveBeenLastCalledWith('1');
       expect(spyB).toHaveBeenLastCalledWith('1');
 
-      expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
-      expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
+      await expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
+      await expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
     });
 
-    it('should clear synchronisation state after switching from A to B', () => {
-      const { wrapperA, wrapperB, spyA, spyB, debug } = renderTestCase(selectSynchronisedTooltipState);
+    it('should clear synchronisation state after switching from A to B', async () => {
+      const { wrapperA, wrapperB, spyA, spyB, debug } = await renderTestCase(selectSynchronisedTooltipState);
 
       expect(spyA).toHaveBeenLastCalledWith({
         active: false,
@@ -951,7 +962,7 @@ describe('Tooltip synchronization', () => {
         graphicalItemId: undefined,
       });
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
       // chart A is the target of mouse events so its sync state stays cleared
       // (sourceViewBox is cleared by setMouseOverAxisIndex since A is now doing its own interaction)
       expect(spyA).toHaveBeenLastCalledWith({
@@ -978,7 +989,7 @@ describe('Tooltip synchronization', () => {
       });
       expect(spyB).toHaveBeenCalledTimes(2);
 
-      hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
       // Chart A's sync sourceViewBox was cleared when it started its own mouse interaction
       // (setMouseOverAxisIndex clears sourceViewBox since the chart is no longer "receiving" sync)
       expect(spyA).toHaveBeenLastCalledWith({
@@ -1005,7 +1016,12 @@ describe('Tooltip synchronization', () => {
       });
       expect(spyB).toHaveBeenCalledTimes(2);
 
-      showTooltipOnCoordinate(wrapperB, lineChartMouseHoverTooltipSelector, { clientX: 100, clientY: 100 }, debug);
+      await showTooltipOnCoordinate(
+        wrapperB,
+        lineChartMouseHoverTooltipSelector,
+        { clientX: 100, clientY: 100 },
+        debug,
+      );
       // chart A has now received new synchronisation state from mouse events on chart B
       expect(spyA).toHaveBeenLastCalledWith({
         active: true,
@@ -1040,7 +1056,7 @@ describe('Tooltip synchronization', () => {
 
 describe('brush synchronization', () => {
   it('Should synchronize the data selected by (a single) Brush', async () => {
-    const { container } = render(
+    const { container } = await render(
       <>
         <LineChart width={600} height={300} data={PageData} syncId="brushSync">
           <XAxis dataKey="name" />
@@ -1069,12 +1085,12 @@ describe('brush synchronization', () => {
     expect(secondChart).toBeDefined();
 
     const brushTravellerOne = container.querySelectorAll<SVGRectElement>('.recharts-brush-traveller')[0];
-    fireEvent.mouseDown(brushTravellerOne);
-    fireEvent.mouseMove(brushTravellerOne, { clientX: 250 });
-    fireEvent.mouseUp(brushTravellerOne);
+    await fireEvent.mouseDown(brushTravellerOne);
+    await fireEvent.mouseMove(brushTravellerOne, { clientX: 250 });
+    await fireEvent.mouseUp(brushTravellerOne);
 
-    expect(queryByText(firstChart, 'Page A')).not.toBeInTheDocument();
-    expect(queryByText(secondChart, 'Page A')).not.toBeInTheDocument();
+    await expect.element(page.elementLocator(firstChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
+    await expect.element(page.elementLocator(secondChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
   });
 });
 
@@ -1094,7 +1110,7 @@ describe('Cursor synchronization', () => {
     RadarChartTestCase,
   ])('as a child of $name with syncId', ({ Wrapper, mouseHoverSelector }) => {
     it('should display cursor inside of the synchronized SVG', async () => {
-      const { container, debug } = render(
+      const { container, debug } = await render(
         <>
           <Wrapper syncId="cursorSync" dataKey="uv">
             <Tooltip />
@@ -1108,13 +1124,13 @@ describe('Cursor synchronization', () => {
       const wrapperOne = wrappers[0];
       const wrapperTwo = wrappers[1];
 
-      expect(container.querySelector('.recharts-tooltip-cursor')).not.toBeInTheDocument();
+      await expect.element(page.elementLocator(container).getByCSS('.recharts-tooltip-cursor')).not.toBeInTheDocument();
 
-      showTooltip(container, mouseHoverSelector, debug);
+      await showTooltip(container, mouseHoverSelector, debug);
 
-      expect(wrapperOne.querySelector('.recharts-wrapper svg .recharts-tooltip-cursor')).toBeVisible();
-      expect(wrapperTwo.querySelector('.recharts-tooltip-cursor')).not.toBeNull();
-      expect(wrapperTwo.querySelector('.recharts-tooltip-cursor')).toBeVisible();
+      await expect.element(page.elementLocator(wrapperOne).getByCSS('svg .recharts-tooltip-cursor')).toBeVisible();
+      await expect.element(page.elementLocator(wrapperTwo).getByCSS('.recharts-tooltip-cursor')).toBeInTheDocument();
+      await expect.element(page.elementLocator(wrapperTwo).getByCSS('.recharts-tooltip-cursor')).toBeVisible();
     });
   });
 });
@@ -1284,15 +1300,15 @@ describe('Tooltip coordinate bounding in synchronization', () => {
     ({ smallChart: SmallChart, largeChart: LargeChart, mouseHoverSelector, syncCoordinates }) => {
       const renderBoundingTestCase = createSynchronisedSelectorTestCase(SmallChart, LargeChart);
 
-      it('should bound coordinates within chart container when x exceeds maxX', () => {
-        const { wrapperB, spyA, spyB } = renderBoundingTestCase(state =>
+      it('should bound coordinates within chart container when x exceeds maxX', async () => {
+        const { wrapperB, spyA, spyB } = await renderBoundingTestCase(state =>
           selectActiveCoordinate(state, 'axis', 'hover', undefined),
         );
 
         expect(spyA).toHaveBeenLastCalledWith(undefined);
         expect(spyB).toHaveBeenLastCalledWith(undefined);
 
-        showTooltip(wrapperB, mouseHoverSelector);
+        await showTooltip(wrapperB, mouseHoverSelector);
 
         expect(spyA).toHaveBeenCalled();
         const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1308,15 +1324,15 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         expect(lastCallA.x).toBeGreaterThanOrEqual(0);
       });
 
-      it('should preserve coordinate properties while bounding x and y', () => {
-        const { wrapperB, spyA, spyB } = renderBoundingTestCase(state =>
+      it('should preserve coordinate properties while bounding x and y', async () => {
+        const { wrapperB, spyA, spyB } = await renderBoundingTestCase(state =>
           selectActiveCoordinate(state, 'axis', 'hover', undefined),
         );
 
         expect(spyA).toHaveBeenLastCalledWith(undefined);
         expect(spyB).toHaveBeenLastCalledWith(undefined);
 
-        showTooltip(wrapperB, mouseHoverSelector);
+        await showTooltip(wrapperB, mouseHoverSelector);
 
         expect(spyA).toHaveBeenCalled();
         expect(spyB).toHaveBeenCalled();
@@ -1347,12 +1363,12 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         expect(lastCallB.y).toBeLessThanOrEqual(400);
       });
 
-      it('should not modify coordinates when they are within bounds', () => {
-        const { wrapperA, spyA, spyB } = renderBoundingTestCase(state =>
+      it('should not modify coordinates when they are within bounds', async () => {
+        const { wrapperA, spyA, spyB } = await renderBoundingTestCase(state =>
           selectActiveCoordinate(state, 'axis', 'hover', undefined),
         );
 
-        showTooltip(wrapperA, mouseHoverSelector);
+        await showTooltip(wrapperA, mouseHoverSelector);
 
         expect(spyA).toHaveBeenCalled();
         expect(spyB).toHaveBeenCalled();
@@ -1363,12 +1379,12 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         expect(spyB.mock.calls.length).toBeGreaterThan(0);
       });
 
-      it.skipIf(!syncCoordinates)('should scale coordinates from small to large chart proportionally', () => {
-        const { wrapperA, spyA, spyB } = renderBoundingTestCase(state =>
+      it.skipIf(!syncCoordinates)('should scale coordinates from small to large chart proportionally', async () => {
+        const { wrapperA, spyA, spyB } = await renderBoundingTestCase(state =>
           selectActiveCoordinate(state, 'axis', 'hover', undefined),
         );
 
-        showTooltipOnCoordinate(wrapperA, mouseHoverSelector, { clientX: 100, clientY: 100 });
+        await showTooltipOnCoordinate(wrapperA, mouseHoverSelector, { clientX: 100, clientY: 100 });
 
         if (spyA.mock.lastCall == null || spyB.mock.lastCall == null) {
           throw new Error('Expected spyA and spyB to have been called at least once');
@@ -1394,12 +1410,12 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         expect(actualYRatio).toBeCloseTo(expectedYRatio, 1);
       });
 
-      it.skipIf(!syncCoordinates)('should scale coordinates from large to small chart proportionally', () => {
-        const { wrapperB, spyA, spyB } = renderBoundingTestCase(state =>
+      it.skipIf(!syncCoordinates)('should scale coordinates from large to small chart proportionally', async () => {
+        const { wrapperB, spyA, spyB } = await renderBoundingTestCase(state =>
           selectActiveCoordinate(state, 'axis', 'hover', undefined),
         );
 
-        showTooltipOnCoordinate(wrapperB, mouseHoverSelector, { clientX: 300, clientY: 200 });
+        await showTooltipOnCoordinate(wrapperB, mouseHoverSelector, { clientX: 300, clientY: 200 });
 
         if (spyA.mock.lastCall == null || spyB.mock.lastCall == null) {
           throw new Error('Expected spyA and spyB to have been called at least once');
@@ -1427,7 +1443,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
   );
 
   describe('cross-chart type synchronization', () => {
-    it('should bound coordinates when synchronizing from AreaChart to LineChart', () => {
+    it('should bound coordinates when synchronizing from AreaChart to LineChart', async () => {
       const renderAreaToLineTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="areaToLineTest" data={PageData} width={200} height={150} className="line-chart">
@@ -1449,11 +1465,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderAreaToLineTestCase(state =>
+      const { wrapperB, spyA } = await renderAreaToLineTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, areaChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, areaChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1471,7 +1487,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should bound coordinates when synchronizing from LineChart to AreaChart', () => {
+    it('should bound coordinates when synchronizing from LineChart to AreaChart', async () => {
       const renderLineToAreaTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <AreaChart syncId="lineToAreaTest" data={PageData} width={300} height={200} className="area-chart">
@@ -1493,11 +1509,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderLineToAreaTestCase(state =>
+      const { wrapperB, spyA } = await renderLineToAreaTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1515,7 +1531,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle LineChart to RadialBarChart synchronization with property preservation', () => {
+    it('should handle LineChart to RadialBarChart synchronization with property preservation', async () => {
       const renderLineToRadialTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="lineToRadialTest" data={PageData} width={300} height={200} className="line-chart">
@@ -1538,11 +1554,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderLineToRadialTestCase(state =>
+      const { wrapperB, spyA } = await renderLineToRadialTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, radialBarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1573,7 +1589,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle BarChart to ComposedChart synchronization', () => {
+    it('should handle BarChart to ComposedChart synchronization', async () => {
       const renderBarToComposedTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <ComposedChart syncId="barToComposedTest" data={PageData} width={250} height={180} className="composed-chart">
@@ -1595,11 +1611,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderBarToComposedTestCase(state =>
+      const { wrapperB, spyA } = await renderBarToComposedTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, barChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, barChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1617,7 +1633,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle ComposedChart to AreaChart synchronization', () => {
+    it('should handle ComposedChart to AreaChart synchronization', async () => {
       const renderComposedToAreaTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <AreaChart syncId="composedToAreaTest" data={PageData} width={280} height={220} className="area-chart">
@@ -1646,11 +1662,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderComposedToAreaTestCase(state =>
+      const { wrapperB, spyA } = await renderComposedToAreaTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, composedChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, composedChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1668,7 +1684,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle RadarChart to LineChart synchronization', () => {
+    it('should handle RadarChart to LineChart synchronization', async () => {
       const renderRadarToLineTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="radarToLineTest" data={PageData} width={320} height={240} className="line-chart">
@@ -1691,11 +1707,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderRadarToLineTestCase(state =>
+      const { wrapperB, spyA } = await renderRadarToLineTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, radarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, radarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1713,7 +1729,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle RadialBarChart to BarChart synchronization with property preservation', () => {
+    it('should handle RadialBarChart to BarChart synchronization with property preservation', async () => {
       const renderRadialBarToBarTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <BarChart syncId="radialBarToBarTest" data={PageData} width={350} height={250} className="bar-chart">
@@ -1742,11 +1758,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderRadialBarToBarTestCase(state =>
+      const { wrapperB, spyA } = await renderRadialBarToBarTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, radialBarChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, radialBarChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1777,7 +1793,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle AreaChart to RadarChart synchronization', () => {
+    it('should handle AreaChart to RadarChart synchronization', async () => {
       const renderAreaToRadarTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <RadarChart syncId="areaToRadarTest" data={PageData} width={300} height={280} className="radar-chart">
@@ -1800,11 +1816,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderAreaToRadarTestCase(state =>
+      const { wrapperB, spyA } = await renderAreaToRadarTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, areaChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, areaChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1822,7 +1838,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should handle multi-chart synchronization with mixed chart types', () => {
+    it('should handle multi-chart synchronization with mixed chart types', async () => {
       const renderMultiChartTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="multiChartTest" data={PageData} width={200} height={160} className="line-chart">
@@ -1846,11 +1862,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderMultiChartTestCase(state =>
+      const { wrapperB, spyA } = await renderMultiChartTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, composedChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, composedChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1880,13 +1896,13 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       </LineChart>
     ));
 
-    it('should handle undefined coordinate gracefully', () => {
-      const { spy } = renderEdgeCaseTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+    it('should handle undefined coordinate gracefully', async () => {
+      const { spy } = await renderEdgeCaseTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
 
       expect(spy).toHaveBeenLastCalledWith(undefined);
     });
 
-    it('should handle zero-sized viewBox', () => {
+    it('should handle zero-sized viewBox', async () => {
       const renderZeroViewBoxTestCase = createSelectorTestCase(({ children }) => (
         <LineChart syncId="zeroViewBoxTest" data={PageData} width={0} height={0}>
           <XAxis dataKey="name" />
@@ -1897,12 +1913,14 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         </LineChart>
       ));
 
-      const { spy } = renderZeroViewBoxTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+      const { spy } = await renderZeroViewBoxTestCase(state =>
+        selectActiveCoordinate(state, 'axis', 'hover', undefined),
+      );
 
       expect(() => spy).not.toThrow();
     });
 
-    it('should maintain synchronization behavior for identical chart sizes', () => {
+    it('should maintain synchronization behavior for identical chart sizes', async () => {
       const renderIdenticalSizeTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="identicalSizeTest" data={PageData} width={300} height={200}>
@@ -1924,11 +1942,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperA, spyA, spyB } = renderIdenticalSizeTestCase(state =>
+      const { wrapperA, spyA, spyB } = await renderIdenticalSizeTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
 
       // The main assertion is that synchronization occurred
       expect(spyA).toHaveBeenCalled();
@@ -1937,7 +1955,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(spyB.mock.calls.length).toBeGreaterThan(0);
     });
 
-    it('should handle extreme coordinate values', () => {
+    it('should handle extreme coordinate values', async () => {
       const renderExtremeTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="extremeTest" data={PageData} width={100} height={50}>
@@ -1959,11 +1977,11 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         ),
       );
 
-      const { wrapperB, spyA } = renderExtremeTestCase(state =>
+      const { wrapperB, spyA } = await renderExtremeTestCase(state =>
         selectActiveCoordinate(state, 'axis', 'hover', undefined),
       );
 
-      showTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
+      await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector);
 
       expect(spyA).toHaveBeenCalled();
       const lastCallA = spyA.mock.calls[spyA.mock.calls.length - 1][0];
@@ -1981,7 +1999,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(lastCallA.y).toBeGreaterThanOrEqual(0);
     });
 
-    it('should preserve original sourceViewBox when forwarding through multiple charts', () => {
+    it('should preserve original sourceViewBox when forwarding through multiple charts', async () => {
       const renderTestCase = createSynchronisedSelectorTestCase(
         ({ children }) => (
           <LineChart syncId="threeChartTest" data={PageData} width={200} height={200}>
@@ -2016,7 +2034,7 @@ describe('Tooltip coordinate bounding in synchronization', () => {
         spyA: viewBoxSpyA,
         spyB: viewBoxSpyB,
         spyC: viewBoxSpyC,
-      } = renderTestCase(state => selectChartViewBox(state));
+      } = await renderTestCase(state => selectChartViewBox(state));
 
       if (viewBoxSpyA.mock.lastCall == null || viewBoxSpyB.mock.lastCall == null || viewBoxSpyC.mock.lastCall == null) {
         throw new Error('Expected all viewBox spies to have been called at least once');
@@ -2030,9 +2048,9 @@ describe('Tooltip coordinate bounding in synchronization', () => {
       expect(chartAViewBox).not.toEqual(chartBViewBox);
       expect(chartBViewBox).not.toEqual(chartCViewBox);
 
-      const { wrapperA, spyA, spyB, spyC } = renderTestCase(state => selectSynchronisedTooltipState(state));
+      const { wrapperA, spyA, spyB, spyC } = await renderTestCase(state => selectSynchronisedTooltipState(state));
 
-      showTooltipOnCoordinate(wrapperA, lineChartMouseHoverTooltipSelector, { clientX: 100, clientY: 100 });
+      await showTooltipOnCoordinate(wrapperA, lineChartMouseHoverTooltipSelector, { clientX: 100, clientY: 100 });
 
       if (spyA.mock.lastCall == null || spyB.mock.lastCall == null || spyC.mock.lastCall == null) {
         throw new Error('Expected all synchronization state spies to have been called at least once');

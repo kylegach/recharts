@@ -33,7 +33,7 @@
     "build-types": "rimraf types && npm run tsc",
     "check-types": "npm run check-types-lib && npm run check-types-test && npm run check-types-storybook && npm run check-types-test-vr && npm run check-types-website",
     "check-types-lib": "tsc --noEmit",
-    "check-types-test": "tsc --project test/tsconfig.json",
+    "check-types-test": "tsc --project test/tsconfig.json && tsc --project test/component/tsconfig.json",
     "check-types-storybook": "tsc --project storybook/tsconfig.json",
     "check-types-test-vr": "tsc --project test-vr/tsconfig.json",
     "check-types-website": "tsc --project www/tsconfig.json",
@@ -196,6 +196,7 @@
     "update-browserslist-db": "^1.1.0",
     "vitest": "^4.1.7",
     "vitest-axe": "^0.1.0",
+    "vitest-browser-react": "^2.3.0",
     "webpack": "^5.93.0",
     "webpack-bundle-analyzer": "^5.3.0",
     "webpack-cli": "^7.0.3"

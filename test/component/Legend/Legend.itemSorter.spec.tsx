@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { render } from 'vitest-browser-react';
 import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import {
   Area,
@@ -14,14 +14,15 @@ import {
 } from '../../../src';
 import { numericalData } from '../../_data';
 import { expectLegendLabels } from '../../helper/expectLegendLabels';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
+import { flushPendingFrames } from '../../helper/browser/act';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { assertNotNull } from '../../helper/assertNotNull';
 
 describe('Legend.itemSorter', () => {
   describe('with default content', () => {
-    test('sorts legend items by label value by default', () => {
-      const { container } = render(
+    test('sorts legend items by label value by default', async () => {
+      const { container } = await render(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend />
           <Line dataKey="percent" name="B" />
@@ -35,8 +36,8 @@ describe('Legend.itemSorter', () => {
       ]);
     });
 
-    test('sorts legend items when itemSorter=dataKey', () => {
-      const { container } = render(
+    test('sorts legend items when itemSorter=dataKey', async () => {
+      const { container } = await render(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend itemSorter="dataKey" />
           <Line dataKey="percent" name="B" />
@@ -52,11 +53,11 @@ describe('Legend.itemSorter', () => {
   });
 
   describe('when Legend content is a function', () => {
-    it('should pass legend items sorted by label value by default', () => {
+    it('should pass legend items sorted by label value by default', async () => {
       // this should sort by label value, but it does not
       const customContent = vi.fn();
 
-      render(
+      await render(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend content={customContent} />
           <Line dataKey="percent" name="B" />
@@ -155,10 +156,10 @@ describe('Legend.itemSorter', () => {
       );
     });
 
-    it('should pass legend items sorted by dataKey when itemSorter is set', () => {
+    it('should pass legend items sorted by dataKey when itemSorter is set', async () => {
       const customContent = vi.fn();
 
-      render(
+      await render(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend content={customContent} itemSorter="dataKey" />
           <Line dataKey="percent" name="B" />
@@ -292,8 +293,8 @@ describe('Legend.itemSorter', () => {
     const renderTestCase = createSelectorTestCase(MyLegendHidingComponent);
 
     describe('on initial render', () => {
-      it('should render all items sorted by dataKey', () => {
-        const { container } = renderTestCase();
+      it('should render all items sorted by dataKey', async () => {
+        const { container } = await renderTestCase();
 
         expectLegendLabels(container, [
           { textContent: 'B', stroke: 'red', fill: 'none' },
@@ -303,49 +304,44 @@ describe('Legend.itemSorter', () => {
     });
 
     describe('after clicking on legend items', () => {
-      it('should hide the clicked item and keep the order', () => {
-        const { container, getByText } = renderTestCase();
+      it('should hide the clicked item and keep the order', async () => {
+        const { container, getByText } = await renderTestCase();
 
-        act(() => {
-          getByText('A').click();
-        });
+        await getByText('A', { exact: true }).click();
+        await flushPendingFrames();
         expectLegendLabels(container, [
           { textContent: 'B', stroke: 'red', fill: 'none' },
           { textContent: 'A', stroke: '#ccc', fill: 'none' },
         ]);
 
-        act(() => {
-          getByText('B').click();
-        });
+        await getByText('B', { exact: true }).click();
+        await flushPendingFrames();
         expectLegendLabels(container, [
           { textContent: 'B', stroke: '#ccc', fill: 'none' },
           { textContent: 'A', stroke: '#ccc', fill: 'none' },
         ]);
       });
 
-      it('should show the clicked item again and keep the order', () => {
-        const { container, getByText } = renderTestCase();
+      it('should show the clicked item again and keep the order', async () => {
+        const { container, getByText } = await renderTestCase();
 
-        act(() => {
-          getByText('A').click();
-          getByText('B').click();
-        });
+        await getByText('A', { exact: true }).click();
+        await getByText('B', { exact: true }).click();
+        await flushPendingFrames();
         expectLegendLabels(container, [
           { textContent: 'B', stroke: '#ccc', fill: 'none' },
           { textContent: 'A', stroke: '#ccc', fill: 'none' },
         ]);
 
-        act(() => {
-          getByText('B').click();
-        });
+        await getByText('B', { exact: true }).click();
+        await flushPendingFrames();
         expectLegendLabels(container, [
           { textContent: 'B', stroke: 'red', fill: 'none' },
           { textContent: 'A', stroke: '#ccc', fill: 'none' },
         ]);
 
-        act(() => {
-          getByText('A').click();
-        });
+        await getByText('A', { exact: true }).click();
+        await flushPendingFrames();
         expectLegendLabels(container, [
           { textContent: 'B', stroke: 'red', fill: 'none' },
           { textContent: 'A', stroke: 'blue', fill: 'none' },
@@ -426,8 +422,8 @@ describe('Legend.itemSorter', () => {
       const renderTestCase = createSelectorTestCase(MyLegendHidingLineChartTestCase);
 
       describe('on initial render', () => {
-        it('should render all items sorted by dataKey', () => {
-          renderTestCase();
+        it('should render all items sorted by dataKey', async () => {
+          await renderTestCase();
 
           expectLastCalledWith(
             spy,
@@ -442,12 +438,11 @@ describe('Legend.itemSorter', () => {
       });
 
       describe('after clicking on legend items', () => {
-        it('should hide the clicked item and keep the order', () => {
-          const { getByText } = renderTestCase();
+        it('should hide the clicked item and keep the order', async () => {
+          const { getByText } = await renderTestCase();
 
-          act(() => {
-            getByText('A').click();
-          });
+          await getByText('A', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -458,9 +453,8 @@ describe('Legend.itemSorter', () => {
             }),
           );
 
-          act(() => {
-            getByText('B').click();
-          });
+          await getByText('B', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -505,8 +499,8 @@ describe('Legend.itemSorter', () => {
       const renderTestCase = createSelectorTestCase(MyLegendHidingAreaChartTestCase);
 
       describe('on initial render', () => {
-        it('should render all items sorted by dataKey', () => {
-          renderTestCase();
+        it('should render all items sorted by dataKey', async () => {
+          await renderTestCase();
 
           expectLastCalledWith(
             spy,
@@ -521,12 +515,11 @@ describe('Legend.itemSorter', () => {
       });
 
       describe('after clicking on legend items', () => {
-        it('should hide the clicked item and keep the order', () => {
-          const { getByText } = renderTestCase();
+        it('should hide the clicked item and keep the order', async () => {
+          const { getByText } = await renderTestCase();
 
-          act(() => {
-            getByText('A').click();
-          });
+          await getByText('A', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -537,9 +530,8 @@ describe('Legend.itemSorter', () => {
             }),
           );
 
-          act(() => {
-            getByText('B').click();
-          });
+          await getByText('B', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -551,13 +543,12 @@ describe('Legend.itemSorter', () => {
           );
         });
 
-        it('should show the clicked item again and keep the order', () => {
-          const { getByText } = renderTestCase();
+        it('should show the clicked item again and keep the order', async () => {
+          const { getByText } = await renderTestCase();
 
-          act(() => {
-            getByText('A').click();
-            getByText('B').click();
-          });
+          await getByText('A', { exact: true }).click();
+          await getByText('B', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -568,9 +559,8 @@ describe('Legend.itemSorter', () => {
             }),
           );
 
-          act(() => {
-            getByText('B').click();
-          });
+          await getByText('B', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({
@@ -581,9 +571,8 @@ describe('Legend.itemSorter', () => {
             }),
           );
 
-          act(() => {
-            getByText('A').click();
-          });
+          await getByText('A', { exact: true }).click();
+          await flushPendingFrames();
           expectLastCalledWith(
             spy,
             expect.objectContaining({

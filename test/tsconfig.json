@@ -8,5 +8,10 @@
     /* Disable noUncheckedIndexedAccess in tests - fixing all array access would be a large undertaking */
     "noUncheckedIndexedAccess": false
   },
-  "include": ["./**/*", "../types.d.ts", "./helper/toBeRechartsScale.ts", "./helper/expectFunctionReturning.ts"]
+  "include": ["./**/*", "../types.d.ts", "./helper/toBeRechartsScale.ts", "./helper/expectFunctionReturning.ts"],
+  /*
+   * Browser Mode tests have their own program in component/tsconfig.json.
+   * vitest/browser bundles its own jest-dom matcher types, which conflict with @testing-library/jest-dom.
+   */
+  "exclude": ["./component/**/*.spec.ts", "./component/**/*.spec.tsx", "./helper/browser/**/*"]
 }

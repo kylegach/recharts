@@ -1,12 +1,14 @@
-import { render } from '@testing-library/react';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 import React from 'react';
 
 import { Bar, BarChart, LabelList, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from '../../src';
 import { expectScatterPoints } from '../helper/expectScatterPoints';
 import { expectLabels } from '../helper/expectLabel';
+import { assertNotNull } from '../helper/assertNotNull';
 
 describe('<LabelList />', () => {
-  it('Render labels in ScatterChart', () => {
+  it('Render labels in ScatterChart', async () => {
     const data = [
       { x: 100, y: 200, z: 200 },
       { x: 120, y: 100, z: 260 },
@@ -15,7 +17,7 @@ describe('<LabelList />', () => {
       { x: 150, y: 400, z: 500 },
       { x: 110, y: 280, z: 200 },
     ];
-    const { container } = render(
+    const { container } = await render(
       <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20 }}>
         <XAxis dataKey="x" name="stature" unit="cm" />
         <YAxis dataKey="y" name="weight" unit="kg" />
@@ -130,7 +132,7 @@ describe('<LabelList />', () => {
     ]);
   });
 
-  it('Render labels in BarChart with an offset', () => {
+  it('Render labels in BarChart with an offset', async () => {
     const data = [
       { x: 100, y: '200' },
       { x: 120, y: '100' },
@@ -139,7 +141,7 @@ describe('<LabelList />', () => {
       { x: 150, y: '400' },
       { x: 110, y: '280' },
     ];
-    const { container } = render(
+    const { container } = await render(
       <BarChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20 }} data={data}>
         <XAxis dataKey="x" />
         <YAxis />
@@ -155,7 +157,9 @@ describe('<LabelList />', () => {
     expect(label?.length).toEqual(data.length);
 
     const text = label[0].closest('text');
-    expect(text).toBeInTheDocument();
-    expect(text).toHaveAttribute('offset', '40');
+    assertNotNull(text);
+    const textLocator = page.elementLocator(text);
+    await expect.element(textLocator).toBeInTheDocument();
+    await expect.element(textLocator).toHaveAttribute('offset', '40');
   });
 });

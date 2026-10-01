@@ -1,6 +1,7 @@
 import React, { ComponentType, ReactNode, useState } from 'react';
 import { beforeEach, describe, expect, it, test } from 'vitest';
-import { act, fireEvent, getByText, render } from '@testing-library/react';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 import {
   Area,
   AreaChart,
@@ -44,7 +45,9 @@ import {
   showTooltip,
   showTooltipOnCoordinate,
   showTooltipOnCoordinateTouch,
-} from './tooltipTestHelpers';
+} from '../../helper/browser/tooltipTestHelpers';
+import { fireEvent } from '../../helper/browser/syntheticEvents';
+import { act, flushPendingFrames } from '../../helper/browser/act';
 import {
   areaChartMouseHoverTooltipSelector,
   barChartMouseHoverTooltipSelector,
@@ -60,7 +63,7 @@ import {
   sunburstChartMouseHoverTooltipSelector,
   treemapNodeChartMouseHoverTooltipSelector,
 } from './tooltipMouseHoverSelectors';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import {
   selectTooltipAxisDomain,
   selectTooltipAxisDomainIncludingNiceTicks,
@@ -376,51 +379,46 @@ describe('Tooltip visibility', () => {
   describe.each(testCases)(
     'as a child of $name',
     ({ name, Wrapper, mouseHoverSelector, expectedTransform, tooltipIndex }) => {
-      test('Without an event, the tooltip wrapper is rendered but not visible', () => {
-        const { container } = render(
+      test('Without an event, the tooltip wrapper is rendered but not visible', async () => {
+        const { container } = await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        const wrapper = getTooltip(container);
-        expect(wrapper).toBeInTheDocument();
-        expect(wrapper).not.toBeVisible();
+        const wrapper = page.elementLocator(getTooltip(container));
+        await expect.element(wrapper).toBeInTheDocument();
+        await expect.element(wrapper).not.toBeVisible();
       });
 
-      test('No content is rendered without an explicit event', () => {
-        const { container } = render(
+      test('No content is rendered without an explicit event', async () => {
+        await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        const tooltipContentName = container.querySelector('.recharts-tooltip-item-name');
-        const tooltipContentValue = container.querySelector('.recharts-tooltip-item-value');
-        expect(tooltipContentName).toBeNull();
-        expect(tooltipContentValue).toBeNull();
+        await expect.element(page.getByCSS('.recharts-tooltip-item-name')).not.toBeInTheDocument();
+        await expect.element(page.getByCSS('.recharts-tooltip-item-value')).not.toBeInTheDocument();
       });
 
-      test(`Mouse over element ${mouseHoverSelector} renders content`, () => {
-        const { container, debug } = render(
+      test(`Mouse over element ${mouseHoverSelector} renders content`, async () => {
+        const { container, debug } = await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        showTooltip(container, mouseHoverSelector, debug);
+        await showTooltip(container, mouseHoverSelector, debug);
 
         const tooltip = getTooltip(container);
-        expect(tooltip).toBeVisible();
+        await expect.element(page.elementLocator(tooltip)).toBeVisible();
 
         // After the mouse over event over the chart, the tooltip wrapper still is not set to visible,
         // but the content is already created based on the nearest data point.
-        const tooltipContentName = container.querySelector('.recharts-tooltip-item-name');
-        const tooltipContentValue = container.querySelector('.recharts-tooltip-item-value');
-        expect(tooltipContentName).not.toBeNull();
-        expect(tooltipContentValue).not.toBeNull();
-        expect(tooltipContentName).toBeInTheDocument();
-        expect(tooltipContentValue).toBeInTheDocument();
+        // Some charts show more than one item, so check the first one.
+        await expect.element(page.getByCSS('.recharts-tooltip-item-name').first()).toBeInTheDocument();
+        await expect.element(page.getByCSS('.recharts-tooltip-item-value').first()).toBeInTheDocument();
       });
 
       test('Should move when the mouse moves', async () => {
@@ -428,28 +426,26 @@ describe('Tooltip visibility', () => {
           width: 10,
           height: 10,
         });
-        const { container } = render(
+        const { container } = await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        const tooltipTriggerElement = showTooltip(container, mouseHoverSelector);
+        const tooltipTriggerElement = await showTooltip(container, mouseHoverSelector);
 
-        const tooltip1 = getTooltip(container);
-        expect(tooltip1.getAttribute('style')).toContain('position: absolute;');
-        expect(tooltip1.getAttribute('style')).toContain('top: 0px');
-        expect(tooltip1.getAttribute('style')).toContain('left: 0px');
+        const tooltip1 = page.elementLocator(getTooltip(container));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('position: absolute;'));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('top: 0px'));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('left: 0px'));
 
-        fireEvent.mouseMove(tooltipTriggerElement, { clientX: 201, clientY: 201 });
+        await fireEvent.mouseMove(tooltipTriggerElement, { clientX: 201, clientY: 201 });
 
-        act(() => {
-          vi.runOnlyPendingTimers();
-        });
+        await flushPendingFrames();
 
-        const tooltip2 = getTooltip(container);
+        const tooltip2 = page.elementLocator(getTooltip(container));
 
-        expect(tooltip2.getAttribute('style')).toContain(expectedTransform);
+        await expect.element(tooltip2).toHaveAttribute('style', expect.stringContaining(expectedTransform));
       });
 
       it(`should move tooltip onTouchMove with active tooltip index ${tooltipIndex}`, async context => {
@@ -465,62 +461,63 @@ describe('Tooltip visibility', () => {
           width: 10,
           height: 10,
         });
-        const { container } = render(
+        const { container } = await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
+        await showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
           clientX: 200,
           clientY: 200,
         });
 
-        const tooltip1 = getTooltip(container);
-        expect(tooltip1.getAttribute('style')).toContain('position: absolute;');
-        expect(tooltip1.getAttribute('style')).toContain('top: 0px');
-        expect(tooltip1.getAttribute('style')).toContain('left: 0px');
+        const tooltip1 = page.elementLocator(getTooltip(container));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('position: absolute;'));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('top: 0px'));
+        await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('left: 0px'));
 
-        showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
+        await showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
           clientX: 201,
           clientY: 201,
         });
 
-        const tooltip2 = getTooltip(container);
+        const tooltip2 = page.elementLocator(getTooltip(container));
 
-        expect(tooltip2.getAttribute('style')).toContain(expectedTransform);
+        await expect.element(tooltip2).toHaveAttribute('style', expect.stringContaining(expectedTransform));
       });
 
-      it('should render customized tooltip when content is set to be a react element', () => {
+      it('should render customized tooltip when content is set to be a react element', async () => {
         const Customized = () => {
           return <div className="customized" />;
         };
-        const { container } = render(
+        const { container } = await render(
           <Wrapper>
             <Tooltip content={<Customized />} />
           </Wrapper>,
         );
 
-        showTooltip(container, mouseHoverSelector);
+        await showTooltip(container, mouseHoverSelector);
 
-        const customizedContent = container.querySelector('.customized');
-        expect(customizedContent).toBeInTheDocument();
+        await expect.element(page.getByCSS('.customized')).toBeInTheDocument();
       });
 
       describe('portal prop', () => {
-        it('should render outside of SVG, as a direct child of recharts-wrapper by default', () => {
-          const { container } = render(
+        it('should render outside of SVG, as a direct child of recharts-wrapper by default', async () => {
+          const { container } = await render(
             <Wrapper>
               <Tooltip />
             </Wrapper>,
           );
-          showTooltip(container, mouseHoverSelector);
+          await showTooltip(container, mouseHoverSelector);
 
-          expect(container.querySelectorAll('.recharts-wrapper svg .recharts-tooltip-wrapper')).toHaveLength(0);
-          expect(container.querySelector('.recharts-wrapper > .recharts-tooltip-wrapper')).toBeVisible();
+          await expect
+            .element(page.getByCSS('.recharts-wrapper svg .recharts-tooltip-wrapper'))
+            .not.toBeInTheDocument();
+          await expect.element(page.getByCSS('.recharts-wrapper > .recharts-tooltip-wrapper')).toBeVisible();
         });
 
-        it('should render in a custom portal if "portal" prop is set', () => {
+        it('should render in a custom portal if "portal" prop is set', async () => {
           function Example() {
             const [portalRef, setPortalRef] = useState<HTMLElement | null>(null);
 
@@ -540,16 +537,16 @@ describe('Tooltip visibility', () => {
               </>
             );
           }
-          const { container } = render(<Example />);
-          showTooltip(container, mouseHoverSelector);
+          const { container } = await render(<Example />);
+          await showTooltip(container, mouseHoverSelector);
 
-          expect(container.querySelector('.recharts-wrapper .recharts-tooltip-wrapper')).not.toBeInTheDocument();
-          expect(
-            container.querySelector('[data-testid="my-custom-portal-target"] > .recharts-tooltip-wrapper'),
-          ).toBeVisible();
+          await expect.element(page.getByCSS('.recharts-wrapper .recharts-tooltip-wrapper')).not.toBeInTheDocument();
+          await expect
+            .element(page.getByCSS('[data-testid="my-custom-portal-target"] > .recharts-tooltip-wrapper'))
+            .toBeVisible();
         });
 
-        it('should keep custom portal visible when active is true after mouseOut, should no longer have absolute styles', () => {
+        it('should keep custom portal visible when active is true after mouseOut, should no longer have absolute styles', async () => {
           function Example() {
             const [portalRef, setPortalRef] = useState<HTMLElement | null>(null);
 
@@ -569,154 +566,154 @@ describe('Tooltip visibility', () => {
               </>
             );
           }
-          const { container } = render(<Example />);
-          showTooltip(container, mouseHoverSelector);
+          const { container } = await render(<Example />);
+          await showTooltip(container, mouseHoverSelector);
 
-          const tooltipWrapper = container.querySelector('.recharts-tooltip-wrapper');
+          const tooltipWrapper = page.getByCSS('.recharts-tooltip-wrapper');
 
-          expect(tooltipWrapper).toHaveStyle({ visibility: 'visible' });
-          expect(tooltipWrapper).not.toHaveStyle({ position: 'absolute' });
+          await expect.element(tooltipWrapper).toHaveStyle({ visibility: 'visible' });
+          await expect.element(tooltipWrapper).not.toHaveStyle({ position: 'absolute' });
 
-          fireEvent.mouseLeave(container, mouseHoverSelector);
+          await fireEvent.mouseLeave(container);
 
-          expect(tooltipWrapper).toHaveStyle({ visibility: 'visible' });
-          expect(tooltipWrapper).not.toHaveStyle({ position: 'absolute' });
+          await expect.element(tooltipWrapper).toHaveStyle({ visibility: 'visible' });
+          await expect.element(tooltipWrapper).not.toHaveStyle({ position: 'absolute' });
 
-          expect(
-            container.querySelector('[data-testid="my-custom-portal-target"] > .recharts-tooltip-wrapper'),
-          ).toBeVisible();
+          await expect
+            .element(page.getByCSS('[data-testid="my-custom-portal-target"] > .recharts-tooltip-wrapper'))
+            .toBeVisible();
         });
       });
 
       describe('active prop', () => {
-        test('with active=true it should render tooltip even after moving the mouse out of the chart.', () => {
-          const { container } = render(
+        test('with active=true it should render tooltip even after moving the mouse out of the chart.', async () => {
+          const { container } = await render(
             <Wrapper>
               <Tooltip active />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).not.toBeVisible();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).not.toBeVisible();
 
-          showTooltip(container, mouseHoverSelector);
+          await showTooltip(container, mouseHoverSelector);
 
-          expect(tooltip).toBeVisible();
+          await expect.element(tooltip).toBeVisible();
 
           const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
           assertNotNull(tooltipTriggerElementAfterHover);
-          fireEvent.mouseOut(tooltipTriggerElementAfterHover);
-          act(() => {
+          await fireEvent.mouseOut(tooltipTriggerElementAfterHover);
+          await act(() => {
             vi.runAllTimers();
           });
 
           // Still visible after moving out of the chart, because active is true.
-          expect(tooltip).toBeVisible();
+          await expect.element(tooltip).toBeVisible();
         });
 
-        test('with active=false it should never render tooltip', () => {
-          const { container } = render(
+        test('with active=false it should never render tooltip', async () => {
+          const { container } = await render(
             <Wrapper>
               <Tooltip active={false} />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).not.toBeVisible();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).not.toBeVisible();
 
-          showTooltip(container, mouseHoverSelector);
+          await showTooltip(container, mouseHoverSelector);
 
-          expect(tooltip).not.toBeVisible();
+          await expect.element(tooltip).not.toBeVisible();
 
           const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
           assertNotNull(tooltipTriggerElementAfterHover);
-          fireEvent.mouseOut(tooltipTriggerElementAfterHover);
-          act(() => {
+          await fireEvent.mouseOut(tooltipTriggerElementAfterHover);
+          await act(() => {
             vi.runAllTimers();
           });
 
-          expect(tooltip).not.toBeVisible();
+          await expect.element(tooltip).not.toBeVisible();
         });
 
-        test('with active=undefined it should render the Tooltip only while in the chart', () => {
-          const { container } = render(
+        test('with active=undefined it should render the Tooltip only while in the chart', async () => {
+          const { container } = await render(
             <Wrapper>
               <Tooltip />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).not.toBeVisible();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).not.toBeVisible();
 
-          showTooltip(container, mouseHoverSelector);
+          await showTooltip(container, mouseHoverSelector);
 
-          expect(tooltip).toBeVisible();
+          await expect.element(tooltip).toBeVisible();
 
           const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
           assertNotNull(tooltipTriggerElementAfterHover);
-          fireEvent.mouseOut(tooltipTriggerElementAfterHover);
-          act(() => {
+          await fireEvent.mouseOut(tooltipTriggerElementAfterHover);
+          await act(() => {
             vi.runAllTimers();
           });
 
-          expect(tooltip).not.toBeVisible();
+          await expect.element(tooltip).not.toBeVisible();
         });
       });
 
       describe('defaultIndex prop', () => {
-        it('should show tooltip from the beginning if defaultIndex is set to a valid value', context => {
+        it('should show tooltip from the beginning if defaultIndex is set to a valid value', async context => {
           if (name === 'Sankey') {
             /*
              * Sankey chart won't work with numerical indexes and it will need a different format
              */
             context.skip();
           }
-          const { container } = render(
+          const { container } = await render(
             <Wrapper>
               <Tooltip defaultIndex={tooltipIndex} />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).toBeInTheDocument();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).toBeInTheDocument();
 
           // Tooltip should be visible, since defaultIndex was set
-          expect(tooltip).toBeVisible();
+          await expect.element(tooltip).toBeVisible();
 
-          const tooltipTriggerElement = showTooltip(container, mouseHoverSelector);
-
-          // Tooltip should be able to move when the mouse moves over the chart
-          expect(tooltip).toBeVisible();
-
-          fireEvent.mouseOver(tooltipTriggerElement, { clientX: 350, clientY: 200 });
+          const tooltipTriggerElement = await showTooltip(container, mouseHoverSelector);
 
           // Tooltip should be able to move when the mouse moves over the chart
-          expect(tooltip).toBeVisible();
+          await expect.element(tooltip).toBeVisible();
+
+          await fireEvent.mouseOver(tooltipTriggerElement, { clientX: 350, clientY: 200 });
+
+          // Tooltip should be able to move when the mouse moves over the chart
+          await expect.element(tooltip).toBeVisible();
 
           const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
           assertNotNull(tooltipTriggerElementAfterHover);
-          fireEvent.mouseOut(tooltipTriggerElementAfterHover);
-          act(() => {
+          await fireEvent.mouseOut(tooltipTriggerElementAfterHover);
+          await act(() => {
             vi.runAllTimers();
           });
 
           // Since active is false, the tooltip can be dismissed by mousing out
-          expect(tooltip).not.toBeVisible();
+          await expect.element(tooltip).not.toBeVisible();
         });
 
-        it('should ignore invalid defaultIndex value', () => {
-          const { container } = render(
+        it('should ignore invalid defaultIndex value', async () => {
+          const { container } = await render(
             <Wrapper>
               <Tooltip defaultIndex={NaN} />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).toBeInTheDocument();
-          expect(tooltip).not.toBeVisible();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).toBeInTheDocument();
+          await expect.element(tooltip).not.toBeVisible();
         });
 
-        it('should show the last item when defaultIndex is same or larger than the data.length', context => {
+        it('should show the last item when defaultIndex is same or larger than the data.length', async context => {
           if (name === 'FunnelChart') {
             // FunnelChart throws an error when called with defaultIndex
             context.skip();
@@ -739,15 +736,15 @@ describe('Tooltip visibility', () => {
              */
             context.skip();
           }
-          const { container } = render(
+          const { container } = await render(
             <Wrapper>
               <Tooltip defaultIndex={commonChartProps.data.length} />
             </Wrapper>,
           );
 
-          const tooltip = getTooltip(container);
-          expect(tooltip).toBeInTheDocument();
-          expect(tooltip).toBeVisible();
+          const tooltip = page.elementLocator(getTooltip(container));
+          await expect.element(tooltip).toBeInTheDocument();
+          await expect.element(tooltip).toBeVisible();
         });
       });
     },
@@ -761,13 +758,13 @@ describe('Tooltip visibility', () => {
       </LineChartVerticalTestCase.Wrapper>
     ));
 
-    it('should select chart layout', () => {
-      const { spy } = renderTestCase(selectChartLayout);
+    it('should select chart layout', async () => {
+      const { spy } = await renderTestCase(selectChartLayout);
       expectLastCalledWith(spy, 'vertical');
     });
 
-    it('should select chart offset', () => {
-      const { spy } = renderTestCase(selectChartOffsetInternal);
+    it('should select chart offset', async () => {
+      const { spy } = await renderTestCase(selectChartOffsetInternal);
       expectLastCalledWith(spy, {
         bottom: 135,
         brushBottom: 35,
@@ -779,8 +776,8 @@ describe('Tooltip visibility', () => {
       });
     });
 
-    it('should select legend settings', () => {
-      const { spy } = renderTestCase(selectLegendSettings);
+    it('should select legend settings', async () => {
+      const { spy } = await renderTestCase(selectLegendSettings);
       const expected: LegendSettings = {
         align: 'center',
         itemSorter: 'value',
@@ -792,16 +789,16 @@ describe('Tooltip visibility', () => {
       expectLastCalledWith(spy, expected);
     });
 
-    it('should select legend size', () => {
-      const { spy } = renderTestCase(selectLegendSize);
+    it('should select legend size', async () => {
+      const { spy } = await renderTestCase(selectLegendSize);
       expectLastCalledWith(spy, {
         height: 100,
         width: 100,
       });
     });
 
-    it('should select legend payload', () => {
-      const { spy } = renderTestCase(selectLegendPayload);
+    it('should select legend payload', async () => {
+      const { spy } = await renderTestCase(selectLegendPayload);
       expectLastCalledWith(spy, [
         {
           color: '#82ca9d',
@@ -838,18 +835,18 @@ describe('Tooltip visibility', () => {
       ]);
     });
 
-    it('should select tooltip axis type', () => {
-      const { spy } = renderTestCase(selectTooltipAxisType);
+    it('should select tooltip axis type', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisType);
       expectLastCalledWith(spy, 'yAxis');
     });
 
-    it('should select tooltip axis ID', () => {
-      const { spy } = renderTestCase(selectTooltipAxisId);
+    it('should select tooltip axis ID', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisId);
       expectLastCalledWith(spy, 0);
     });
 
-    it('should select dataStartIndex and dataEndIndex', () => {
-      const { spy } = renderTestCase(selectChartDataWithIndexes);
+    it('should select dataStartIndex and dataEndIndex', async () => {
+      const { spy } = await renderTestCase(selectChartDataWithIndexes);
       expectLastCalledWith(spy, {
         chartData: [
           {
@@ -895,17 +892,19 @@ describe('Tooltip visibility', () => {
       });
     });
 
-    it('should select active label', () => {
-      const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+    it('should select active label', async () => {
+      const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
       expectLastCalledWith(spy, 'Page C');
     });
 
-    it('should select active coordinate', () => {
-      const { container, spy } = renderTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+    it('should select active coordinate', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectActiveCoordinate(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, undefined);
       expect(spy).toHaveBeenCalledTimes(1);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartVerticalTestCase.mouseHoverSelector,
         LineChartVerticalTestCase.mouseCoordinate,
@@ -918,26 +917,26 @@ describe('Tooltip visibility', () => {
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should select tooltip axis range', () => {
-      const { spy } = renderTestCase(selectTooltipAxisRangeWithReverse);
+    it('should select tooltip axis range', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisRangeWithReverse);
       expectLastCalledWith(spy, [20, 265]);
     });
 
-    it('should select tooltip axis scale', () => {
-      const { spy } = renderTestCase(selectTooltipAxisScale);
+    it('should select tooltip axis scale', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisScale);
       expectLastCalledWithScale(spy, {
         domain: ['Page A', 'Page B', 'Page C', 'Page D', 'Page E', 'Page F'],
         range: [20, 265],
       });
     });
 
-    it('should select categorical domain', () => {
-      const { spy } = renderTestCase(selectTooltipCategoricalDomain);
+    it('should select categorical domain', async () => {
+      const { spy } = await renderTestCase(selectTooltipCategoricalDomain);
       expectLastCalledWith(spy, undefined);
     });
 
-    it('should select tooltip axis ticks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisTicks);
+    it('should select tooltip axis ticks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisTicks);
 
       expectLastCalledWith(spy, [
         {
@@ -979,15 +978,17 @@ describe('Tooltip visibility', () => {
       ]);
     });
 
-    it('should select isActive and activeIndex, and update it after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+    it('should select isActive and activeIndex, and update it after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectIsTooltipActive(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, {
         activeIndex: null,
         isActive: false,
       });
       expect(spy).toHaveBeenCalledTimes(3);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartVerticalTestCase.mouseHoverSelector,
         LineChartVerticalTestCase.mouseCoordinate,
@@ -1009,18 +1010,18 @@ describe('Tooltip visibility', () => {
       </RadarChartTestCase.Wrapper>
     ));
 
-    it('should select tooltip axis type', () => {
-      const { spy } = renderTestCase(selectTooltipAxisType);
+    it('should select tooltip axis type', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisType);
       expectLastCalledWith(spy, 'angleAxis');
     });
 
-    it('should select tooltip axis ID', () => {
-      const { spy } = renderTestCase(selectTooltipAxisId);
+    it('should select tooltip axis ID', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisId);
       expectLastCalledWith(spy, 0);
     });
 
-    it('should select tooltip axis settings', () => {
-      const { spy } = renderTestCase(selectTooltipAxis);
+    it('should select tooltip axis settings', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxis);
       expectLastCalledWith(spy, {
         allowDataOverflow: false,
         allowDecimals: false,
@@ -1041,21 +1042,21 @@ describe('Tooltip visibility', () => {
       });
     });
 
-    it('should select tooltip axis range', () => {
-      const { spy } = renderTestCase(selectTooltipAxisRangeWithReverse);
+    it('should select tooltip axis range', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisRangeWithReverse);
       expectLastCalledWith(spy, [90, -270]);
     });
 
-    it('should select tooltip axis scale', () => {
-      const { spy } = renderTestCase(selectTooltipAxisScale);
+    it('should select tooltip axis scale', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisScale);
       expectLastCalledWithScale(spy, {
         domain: ['Page A', 'Page B', 'Page C', 'Page D', 'Page E', 'Page F'],
         range: [-270, 90],
       });
     });
 
-    it('should select tooltip axis ticks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisTicks);
+    it('should select tooltip axis ticks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisTicks);
       expectLastCalledWith(spy, [
         {
           coordinate: 90,
@@ -1096,8 +1097,8 @@ describe('Tooltip visibility', () => {
       ]);
     });
 
-    it('should select tooltip state before & after hover', () => {
-      const { container, spy } = renderTestCase(selectTooltipState);
+    it('should select tooltip state before & after hover', async () => {
+      const { container, spy } = await renderTestCase(selectTooltipState);
 
       const expectedBeforeHover: TooltipState = {
         axisInteraction: {
@@ -1177,7 +1178,7 @@ describe('Tooltip visibility', () => {
       };
       expectLastCalledWith(spy, expectedBeforeHover);
 
-      showTooltip(container, RadarChartTestCase.mouseHoverSelector);
+      await showTooltip(container, RadarChartTestCase.mouseHoverSelector);
 
       const expectedAfterHover: TooltipState = {
         axisInteraction: {
@@ -1270,17 +1271,23 @@ describe('Tooltip visibility', () => {
       expectLastCalledWith(spy, expectedAfterHover);
     });
 
-    it('should select active label', () => {
-      const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+    it('should select active label', async () => {
+      const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
       expectLastCalledWith(spy, 'Page C');
     });
 
-    it('should select active coordinate', () => {
-      const { container, spy } = renderTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+    it('should select active coordinate', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectActiveCoordinate(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, undefined);
       expect(spy).toHaveBeenCalledTimes(1);
 
-      showTooltipOnCoordinate(container, RadarChartTestCase.mouseHoverSelector, RadarChartTestCase.mouseCoordinate);
+      await showTooltipOnCoordinate(
+        container,
+        RadarChartTestCase.mouseHoverSelector,
+        RadarChartTestCase.mouseCoordinate,
+      );
 
       expectLastCalledWith(spy, {
         angle: -210,
@@ -1307,23 +1314,23 @@ describe('Tooltip visibility', () => {
       </RadialBarChartTestCase.Wrapper>
     ));
 
-    it('should select chart layout', () => {
-      const { spy } = renderTestCase(selectChartLayout);
+    it('should select chart layout', async () => {
+      const { spy } = await renderTestCase(selectChartLayout);
       expectLastCalledWith(spy, 'radial');
     });
 
-    it('should select tooltip axis type', () => {
-      const { spy } = renderTestCase(selectTooltipAxisType);
+    it('should select tooltip axis type', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisType);
       expectLastCalledWith(spy, 'radiusAxis');
     });
 
-    it('should select tooltip axis ID', () => {
-      const { spy } = renderTestCase(selectTooltipAxisId);
+    it('should select tooltip axis ID', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisId);
       expectLastCalledWith(spy, 0);
     });
 
-    it('should select tooltip axis settings', () => {
-      const { spy } = renderTestCase(selectTooltipAxis);
+    it('should select tooltip axis settings', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxis);
       expectLastCalledWith(spy, {
         allowDataOverflow: false,
         allowDecimals: false,
@@ -1344,36 +1351,36 @@ describe('Tooltip visibility', () => {
       });
     });
 
-    it('should select tooltip axis range', () => {
-      const { spy } = renderTestCase(selectTooltipAxisRangeWithReverse);
+    it('should select tooltip axis range', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisRangeWithReverse);
       expectLastCalledWith(spy, [0, 236]);
     });
 
-    test('selectTooltipAxisDomainIncludingNiceTicks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisDomainIncludingNiceTicks);
+    test('selectTooltipAxisDomainIncludingNiceTicks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisDomainIncludingNiceTicks);
       expectLastCalledWith(spy, ['Page A', 'Page B', 'Page C', 'Page D', 'Page E', 'Page F']);
     });
 
-    test('selectTooltipAxisDomain', () => {
-      const { spy } = renderTestCase(selectTooltipAxisDomain);
+    test('selectTooltipAxisDomain', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisDomain);
       expectLastCalledWith(spy, ['Page A', 'Page B', 'Page C', 'Page D', 'Page E', 'Page F']);
     });
 
-    it('should select tooltip axis scale', () => {
-      const { spy } = renderTestCase(selectTooltipAxisScale);
+    it('should select tooltip axis scale', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisScale);
       expectLastCalledWithScale(spy, {
         domain: ['Page A', 'Page B', 'Page C', 'Page D', 'Page E', 'Page F'],
         range: [0, 236],
       });
     });
 
-    it('should select categoricalDomain = undefined', () => {
-      const { spy } = renderTestCase(selectTooltipCategoricalDomain);
+    it('should select categoricalDomain = undefined', async () => {
+      const { spy } = await renderTestCase(selectTooltipCategoricalDomain);
       expectLastCalledWith(spy, undefined);
     });
 
-    it('should select tooltip axis ticks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisTicks);
+    it('should select tooltip axis ticks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisTicks);
       expectLastCalledWith(spy, [
         {
           coordinate: 19.666666666666668,
@@ -1419,23 +1426,28 @@ describe('Tooltip visibility', () => {
         width: 10,
         height: 10,
       });
-      const { container } = renderTestCase();
+      const { container } = await renderTestCase();
 
-      showTooltipOnCoordinate(container, RadialBarChartTestCase.mouseHoverSelector, {
+      await showTooltipOnCoordinate(container, RadialBarChartTestCase.mouseHoverSelector, {
         clientX: 200,
         clientY: 200,
       });
 
-      const tooltip1 = getTooltip(container);
-      expect(tooltip1.getAttribute('style')).toContain('position: absolute;');
-      expect(tooltip1.getAttribute('style')).toContain('top: 0px');
-      expect(tooltip1.getAttribute('style')).toContain('left: 0px');
+      const tooltip1 = page.elementLocator(getTooltip(container));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('position: absolute;'));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('top: 0px'));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('left: 0px'));
 
-      showTooltipOnCoordinate(container, RadialBarChartTestCase.mouseHoverSelector, { clientX: 201, clientY: 201 });
+      await showTooltipOnCoordinate(container, RadialBarChartTestCase.mouseHoverSelector, {
+        clientX: 201,
+        clientY: 201,
+      });
 
-      const tooltip2 = getTooltip(container);
+      const tooltip2 = page.elementLocator(getTooltip(container));
 
-      expect(tooltip2.getAttribute('style')).toContain(RadialBarChartTestCase.expectedTransform);
+      await expect
+        .element(tooltip2)
+        .toHaveAttribute('style', expect.stringContaining(RadialBarChartTestCase.expectedTransform));
     });
 
     it('should move onTouchMove', async () => {
@@ -1443,26 +1455,28 @@ describe('Tooltip visibility', () => {
         width: 10,
         height: 10,
       });
-      const { container } = renderTestCase();
+      const { container } = await renderTestCase();
 
-      showTooltipOnCoordinateTouch(container, RadialBarChartTestCase.mouseHoverSelector, {
+      await showTooltipOnCoordinateTouch(container, RadialBarChartTestCase.mouseHoverSelector, {
         clientX: 200,
         clientY: 200,
       });
 
-      const tooltip1 = getTooltip(container);
-      expect(tooltip1.getAttribute('style')).toContain('position: absolute;');
-      expect(tooltip1.getAttribute('style')).toContain('top: 0px');
-      expect(tooltip1.getAttribute('style')).toContain('left: 0px');
+      const tooltip1 = page.elementLocator(getTooltip(container));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('position: absolute;'));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('top: 0px'));
+      await expect.element(tooltip1).toHaveAttribute('style', expect.stringContaining('left: 0px'));
 
-      showTooltipOnCoordinateTouch(container, RadialBarChartTestCase.mouseHoverSelector, {
+      await showTooltipOnCoordinateTouch(container, RadialBarChartTestCase.mouseHoverSelector, {
         clientX: 201,
         clientY: 201,
       });
 
-      const tooltip2 = getTooltip(container);
+      const tooltip2 = page.elementLocator(getTooltip(container));
 
-      expect(tooltip2.getAttribute('style')).toContain(RadialBarChartTestCase.expectedTransform);
+      await expect
+        .element(tooltip2)
+        .toHaveAttribute('style', expect.stringContaining(RadialBarChartTestCase.expectedTransform));
     });
   });
 
@@ -1482,27 +1496,29 @@ describe('Tooltip visibility', () => {
         </ComposedChart>
       ));
 
-      it('should select tooltip axis ID', () => {
-        const { spy } = renderTestCase(selectTooltipAxisId);
+      it('should select tooltip axis ID', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxisId);
         expectLastCalledWith(spy, 0);
       });
 
-      it('should select tooltip axis type', () => {
-        const { spy } = renderTestCase(selectTooltipAxisType);
+      it('should select tooltip axis type', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxisType);
         expectLastCalledWith(spy, 'xAxis');
       });
 
-      it('should select active label when given explicit index', () => {
-        const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+      it('should select active label when given explicit index', async () => {
+        const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
         expectLastCalledWith(spy, 2400);
       });
 
-      it('should select active coordinate', () => {
-        const { container, spy } = renderTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+      it('should select active coordinate', async () => {
+        const { container, spy } = await renderTestCase(state =>
+          selectActiveCoordinate(state, 'axis', 'hover', undefined),
+        );
         expectLastCalledWith(spy, undefined);
         expect(spy).toHaveBeenCalledTimes(1);
 
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
         expectLastCalledWith(spy, {
           x: 395,
@@ -1511,16 +1527,16 @@ describe('Tooltip visibility', () => {
         expect(spy).toHaveBeenCalledTimes(2);
       });
 
-      it('should select tooltip axis scale', () => {
-        const { spy } = renderTestCase(selectTooltipAxisScale);
+      it('should select tooltip axis scale', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxisScale);
         expectLastCalledWithScale(spy, {
           domain: [0, 2400],
           range: [65, 395],
         });
       });
 
-      it('should select tooltip axis settings', () => {
-        const { spy } = renderTestCase(selectTooltipAxis);
+      it('should select tooltip axis settings', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxis);
         expectLastCalledWith(spy, {
           allowDataOverflow: false,
           allowDecimals: true,
@@ -1553,13 +1569,13 @@ describe('Tooltip visibility', () => {
         });
       });
 
-      it('should select tooltip axis real scale type', () => {
-        const { spy } = renderTestCase(selectTooltipAxisRealScaleType);
+      it('should select tooltip axis real scale type', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxisRealScaleType);
         expectLastCalledWith(spy, 'linear');
       });
 
-      it('should select tooltip axis ticks', () => {
-        const { spy } = renderTestCase(selectTooltipAxisTicks);
+      it('should select tooltip axis ticks', async () => {
+        const { spy } = await renderTestCase(selectTooltipAxisTicks);
         expectLastCalledWith(spy, [
           { coordinate: 395, value: 2400, index: 0, offset: 0 },
           { coordinate: 395, value: 2400, index: 1, offset: 0 },
@@ -1570,15 +1586,17 @@ describe('Tooltip visibility', () => {
         ]);
       });
 
-      it('should select isActive', () => {
-        const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+      it('should select isActive', async () => {
+        const { container, spy } = await renderTestCase(state =>
+          selectIsTooltipActive(state, 'axis', 'hover', undefined),
+        );
         expectLastCalledWith(spy, {
           activeIndex: null,
           isActive: false,
         });
         expect(spy).toHaveBeenCalledTimes(3);
 
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
         expectLastCalledWith(spy, {
           activeIndex: '0',
@@ -1587,14 +1605,14 @@ describe('Tooltip visibility', () => {
         expect(spy).toHaveBeenCalledTimes(4);
       });
 
-      it('should render tooltip payload for hidden items', () => {
-        const { container } = renderTestCase();
+      it('should render tooltip payload for hidden items', async () => {
+        const { container } = await renderTestCase();
 
-        expectTooltipNotVisible(container);
+        await expectTooltipNotVisible(container);
 
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
-        expectTooltipPayload(container, '2400', [
+        await expectTooltipPayload(container, '2400', [
           '1 : 400',
           '2 : 2400',
           '3 : 2400',
@@ -1620,20 +1638,20 @@ describe('Tooltip visibility', () => {
         </ComposedChart>
       ));
 
-      it('should hide tooltip for hidden items', () => {
-        const { container } = renderTestCase();
+      it('should hide tooltip for hidden items', async () => {
+        const { container } = await renderTestCase();
 
-        expectTooltipNotVisible(container);
+        await expectTooltipNotVisible(container);
 
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
-        expectTooltipPayload(container, '2400', ['5 : 2400']);
+        await expectTooltipPayload(container, '2400', ['5 : 2400']);
       });
     });
   });
 
-  it('Should display the data selected by Brush', () => {
-    const { container, debug } = render(
+  it('Should display the data selected by Brush', async () => {
+    const { container, debug } = await render(
       <LineChart width={600} height={300} data={PageData}>
         <XAxis dataKey="name" />
         <YAxis />
@@ -1647,7 +1665,7 @@ describe('Tooltip visibility', () => {
     );
 
     const line = container.querySelector('.recharts-cartesian-grid-horizontal line')!;
-    showTooltipOnCoordinate(
+    await showTooltipOnCoordinate(
       container,
       lineChartMouseHoverTooltipSelector,
       {
@@ -1656,10 +1674,10 @@ describe('Tooltip visibility', () => {
       },
       debug,
     );
-    expect(getByText(container, '4567')).toBeVisible();
+    await expect.element(page.getByText('4567', { exact: true })).toBeVisible();
   });
 
-  test('defaultIndex can be updated by parent control', () => {
+  test('defaultIndex can be updated by parent control', async () => {
     const data2 = [
       { x: 100, y: 200, z: 200 },
       { x: 120, y: 100, z: 260 },
@@ -1685,21 +1703,25 @@ describe('Tooltip visibility', () => {
         </div>
       );
     };
-    const { container } = render(<Example />);
+    const { container } = await render(<Example />);
 
     const tooltip = getTooltip(container);
-    expect(tooltip).toBeInTheDocument();
+    await expect.element(page.elementLocator(tooltip)).toBeInTheDocument();
 
     // Tooltip should be visible, since defaultIndex was set
-    expect(tooltip).toBeVisible();
+    await expect.element(page.elementLocator(tooltip)).toBeVisible();
 
     // The cursor should also be visible
-    expect(container.querySelector('.recharts-tooltip-cursor')).toBeVisible();
+    await expect.element(page.getByCSS('.recharts-tooltip-cursor')).toBeVisible();
 
     // Data should be displayed in the Tooltip payload
     expect(tooltip.textContent).toBe('stature : 100cmweight : 200kg');
 
-    fireEvent.click(container.querySelector('#goRight') as HTMLButtonElement);
+    /*
+     * Synthetic click, not userEvent: a real pointer stays where the button was,
+     * and Chromium sends hover events to charts that later tests render under it.
+     */
+    await fireEvent.click(container.querySelector('#goRight') as HTMLButtonElement);
 
     // Data should be displayed in the Tooltip payload
     expect(tooltip.textContent).toBe('stature : 120cmweight : 100kg');
@@ -1719,17 +1741,17 @@ describe('Active element visibility', () => {
     ComposedChartWithLineTestCase,
     RadarChartTestCase,
   ])('as a child of $name', ({ Wrapper, mouseHoverSelector }) => {
-    it('should display activeDot', () => {
-      const { container, debug } = render(
+    it('should display activeDot', async () => {
+      const { container, debug } = await render(
         <Wrapper>
           <Tooltip />
         </Wrapper>,
       );
-      expect(container.querySelector('.recharts-active-dot')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-active-dot')).not.toBeInTheDocument();
 
-      showTooltip(container, mouseHoverSelector, debug);
+      await showTooltip(container, mouseHoverSelector, debug);
 
-      expect(container.querySelector('.recharts-active-dot')).toBeVisible();
+      await expect.element(page.getByCSS('.recharts-active-dot')).toBeVisible();
     });
   });
 
@@ -1743,17 +1765,17 @@ describe('Active element visibility', () => {
     SunburstChartTestCase,
     TreemapTestCase,
   ])('as a child of $name', ({ Wrapper, mouseHoverSelector }) => {
-    it('should not display activeDot', () => {
-      const { container, debug } = render(
+    it('should not display activeDot', async () => {
+      const { container, debug } = await render(
         <Wrapper>
           <Tooltip />
         </Wrapper>,
       );
-      expect(container.querySelector('.recharts-active-dot')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-active-dot')).not.toBeInTheDocument();
 
-      showTooltip(container, mouseHoverSelector, debug);
+      await showTooltip(container, mouseHoverSelector, debug);
 
-      expect(container.querySelector('.recharts-active-dot')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-active-dot')).not.toBeInTheDocument();
     });
   });
 });
@@ -1772,30 +1794,30 @@ describe('Cursor visibility', () => {
     ComposedChartWithLineTestCase,
     RadarChartTestCase,
   ])('as a child of $name', ({ Wrapper, mouseHoverSelector }) => {
-    it('should display cursor inside of the SVG', () => {
-      const { container, debug } = render(
+    it('should display cursor inside of the SVG', async () => {
+      const { container, debug } = await render(
         <Wrapper>
           <Tooltip />
         </Wrapper>,
       );
-      expect(container.querySelector('.recharts-tooltip-cursor')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-tooltip-cursor')).not.toBeInTheDocument();
 
-      showTooltip(container, mouseHoverSelector, debug);
+      await showTooltip(container, mouseHoverSelector, debug);
 
-      expect(container.querySelector('.recharts-wrapper svg .recharts-tooltip-cursor')).toBeVisible();
+      await expect.element(page.getByCSS('.recharts-wrapper svg .recharts-tooltip-cursor')).toBeVisible();
     });
 
-    it('should not display cursor when cursor=false', () => {
-      const { container, debug } = render(
+    it('should not display cursor when cursor=false', async () => {
+      const { container, debug } = await render(
         <Wrapper>
           <Tooltip cursor={false} />
         </Wrapper>,
       );
-      expect(container.querySelector('.recharts-tooltip-cursor')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-tooltip-cursor')).not.toBeInTheDocument();
 
-      showTooltip(container, mouseHoverSelector, debug);
+      await showTooltip(container, mouseHoverSelector, debug);
 
-      expect(container.querySelector('.recharts-tooltip-cursor')).not.toBeInTheDocument();
+      await expect.element(page.getByCSS('.recharts-tooltip-cursor')).not.toBeInTheDocument();
     });
   });
 });

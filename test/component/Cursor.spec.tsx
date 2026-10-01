@@ -1,8 +1,7 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
-import { render } from '@testing-library/react';
+import { render } from 'vitest-browser-react';
 import { Cursor, CursorConnectedProps, CursorInternal, CursorProps } from '../../src/component/Cursor';
-import { assertNotNull } from '../helper/assertNotNull';
 import { RechartsRootState } from '../../src/state/store';
 import { RechartsStoreProvider } from '../../src/state/RechartsStoreProvider';
 import { arrayTooltipSearcher } from '../../src/state/optionsSlice';
@@ -48,7 +47,7 @@ const preloadedRadialState: Partial<RechartsRootState> = produceState(draft => {
 
 describe('Cursor', () => {
   describe('Internal component', () => {
-    it('should render a custom cursor', () => {
+    it('should render a custom cursor', async () => {
       function MyCustomCursor() {
         return <p>I am a cursor.</p>;
       }
@@ -57,15 +56,15 @@ describe('Cursor', () => {
         cursor: <MyCustomCursor />,
         coordinate: baseCoord,
       };
-      const { getByText } = render(
+      const screen = await render(
         <svg width={100} height={100}>
           <CursorInternal {...props} />
         </svg>,
       );
-      expect(getByText('I am a cursor.')).toBeVisible();
+      await expect.element(screen.getByText('I am a cursor.')).toBeVisible();
     });
 
-    it('should render rectangle cursor for bar chart', () => {
+    it('should render rectangle cursor for bar chart', async () => {
       const props: CursorConnectedProps = {
         layout: 'horizontal',
         ...defaultProps,
@@ -74,17 +73,15 @@ describe('Cursor', () => {
         offset: emptyOffset,
         coordinate: baseCoord,
       };
-      const { container } = render(
+      const screen = await render(
         <svg width={100} height={100}>
           <CursorInternal {...props} />
         </svg>,
       );
-      const cursor = container.querySelector('.recharts-rectangle');
-      assertNotNull(cursor);
-      expect(cursor).toBeVisible();
+      await expect.element(screen.getByCSS('.recharts-rectangle')).toBeVisible();
     });
 
-    it('should render sector cursor for radial layout charts', () => {
+    it('should render sector cursor for radial layout charts', async () => {
       const coordinate = { endAngle: 2, radius: 1, startAngle: 1, x: 0, y: 0 };
       const props: CursorConnectedProps = {
         chartName: '',
@@ -100,32 +97,28 @@ describe('Cursor', () => {
           y: 0,
         },
       };
-      const { container } = render(
+      const screen = await render(
         <svg width={100} height={100}>
           <CursorInternal {...props} coordinate={coordinate} zIndex={0} />
         </svg>,
       );
-      const cursor = container.querySelector('.recharts-sector');
-      assertNotNull(cursor);
-      expect(cursor).toBeVisible();
+      await expect.element(screen.getByCSS('.recharts-sector')).toBeVisible();
     });
   });
 
   describe('Connected component', () => {
-    it('should render curve cursor by default', () => {
-      const { container } = render(
+    it('should render curve cursor by default', async () => {
+      const screen = await render(
         <RechartsStoreProvider preloadedState={preloadedState}>
           <svg width={100} height={100}>
             <Cursor {...defaultProps} coordinate={baseCoord} zIndex={0} />
           </svg>
         </RechartsStoreProvider>,
       );
-      const cursor = container.querySelector('.recharts-curve');
-      assertNotNull(cursor);
-      expect(cursor).toBeVisible();
+      await expect.element(screen.getByCSS('.recharts-curve')).toBeVisible();
     });
 
-    it('should render a custom cursor', () => {
+    it('should render a custom cursor', async () => {
       function MyCustomCursor() {
         return <p>I am a cursor.</p>;
       }
@@ -134,47 +127,43 @@ describe('Cursor', () => {
         cursor: <MyCustomCursor />,
         coordinate: baseCoord,
       };
-      const { getByText } = render(
+      const screen = await render(
         <RechartsStoreProvider preloadedState={preloadedState}>
           <svg width={100} height={100}>
             <Cursor {...props} zIndex={0} />
           </svg>
         </RechartsStoreProvider>,
       );
-      expect(getByText('I am a cursor.')).toBeVisible();
+      await expect.element(screen.getByText('I am a cursor.')).toBeVisible();
     });
 
-    it('should render cross cursor for scatter chart', () => {
+    it('should render cross cursor for scatter chart', async () => {
       const preloadedScatterState: Partial<RechartsRootState> = produceState(draft => {
         draft.options.chartName = 'ScatterChart';
         draft.options.tooltipPayloadSearcher = arrayTooltipSearcher;
         draft.tooltip.itemInteraction.hover.active = true;
       });
-      const { container } = render(
+      const screen = await render(
         <RechartsStoreProvider preloadedState={preloadedScatterState}>
           <svg width={100} height={100}>
             <Cursor {...defaultProps} coordinate={baseCoord} zIndex={0} />
           </svg>
         </RechartsStoreProvider>,
       );
-      const cursor = container.querySelector('.recharts-cross');
-      assertNotNull(cursor);
-      expect(cursor).toBeVisible();
+      await expect.element(screen.getByCSS('.recharts-cross')).toBeVisible();
     });
 
-    it('should render sector cursor for radial layout charts', () => {
+    it('should render sector cursor for radial layout charts', async () => {
       const coordinate = { endAngle: 2, radius: 1, startAngle: 1, x: 0, y: 0 };
       const payload: TooltipPayload = [{ value: 'test', name: 'test', graphicalItemId: 'foo' }];
-      const { container } = render(
+      const screen = await render(
         <RechartsStoreProvider preloadedState={preloadedRadialState}>
           <svg width={100} height={100}>
             <Cursor {...defaultProps} coordinate={coordinate} payload={payload} zIndex={0} />
           </svg>
         </RechartsStoreProvider>,
       );
-      const cursor = container.querySelector('.recharts-sector');
-      assertNotNull(cursor);
-      expect(cursor).toBeVisible();
+      await expect.element(screen.getByCSS('.recharts-sector')).toBeVisible();
     });
   });
 });

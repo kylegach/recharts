@@ -1,7 +1,10 @@
 import React, { ComponentType, ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 import { assertNotNull } from '../../helper/assertNotNull';
+import { flushPendingFrames } from '../../helper/browser/act';
+import { fireEvent } from '../../helper/browser/syntheticEvents';
 import {
   Area,
   AreaChart,
@@ -36,7 +39,7 @@ import {
   MouseCoordinate,
   showTooltip,
   showTooltipOnCoordinate,
-} from './tooltipTestHelpers';
+} from '../../helper/browser/tooltipTestHelpers';
 import { exampleSunburstData, exampleTreemapData, PageData, exampleSankeyData } from '../../_data';
 import {
   areaChartMouseHoverTooltipSelector,
@@ -55,7 +58,7 @@ import {
   sunburstChartMouseHoverTooltipSelector,
   treemapNodeChartMouseHoverTooltipSelector,
 } from './tooltipMouseHoverSelectors';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import {
   selectActiveCoordinate,
   selectActiveLabel,
@@ -449,19 +452,23 @@ describe('Tooltip payload', () => {
   describe.each(testCases)(
     'as a child of $name',
     ({ Wrapper, mouseHoverSelector, expectedTooltipTitle, expectedTooltipContent, mouseCoordinate }) => {
-      it('should render expected tooltip payload', () => {
-        const { container, debug } = render(
+      it('should render expected tooltip payload', async () => {
+        const { container, debug } = await render(
           <Wrapper>
             <Tooltip />
           </Wrapper>,
         );
 
-        expect(container.querySelector('.recharts-tooltip-item-name')).toBeNull();
-        expect(container.querySelector('.recharts-tooltip-item-value')).toBeNull();
+        await expect
+          .element(page.elementLocator(container).getByCSS('.recharts-tooltip-item-name'))
+          .not.toBeInTheDocument();
+        await expect
+          .element(page.elementLocator(container).getByCSS('.recharts-tooltip-item-value'))
+          .not.toBeInTheDocument();
 
-        showTooltipOnCoordinate(container, mouseHoverSelector, mouseCoordinate, debug);
+        await showTooltipOnCoordinate(container, mouseHoverSelector, mouseCoordinate, debug);
 
-        expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
+        await expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
       });
     },
   );
@@ -507,33 +514,33 @@ describe('Tooltip payload', () => {
       </LineChartDataOnGraphicalItemTestCase.Wrapper>
     ));
 
-    it('should select xaxis domain', () => {
-      const { spy } = renderTestCase(state => selectAxisDomain(state, 'xAxis', 0, false));
+    it('should select xaxis domain', async () => {
+      const { spy } = await renderTestCase(state => selectAxisDomain(state, 'xAxis', 0, false));
       expectLastCalledWith(spy, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
     });
 
-    it('should select tooltip axis type', () => {
-      const { spy } = renderTestCase(selectTooltipAxisType);
+    it('should select tooltip axis type', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisType);
       expectLastCalledWith(spy, 'xAxis');
     });
 
-    it('should select tooltip axis ID', () => {
-      const { spy } = renderTestCase(selectTooltipAxisId);
+    it('should select tooltip axis ID', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisId);
       expectLastCalledWith(spy, 0);
     });
 
-    it('should select unfiltered graphical items', () => {
-      const { spy } = renderTestCase(selectAllUnfilteredGraphicalItems);
+    it('should select unfiltered graphical items', async () => {
+      const { spy } = await renderTestCase(selectAllUnfilteredGraphicalItems);
       expectLastCalledWith(spy, [expectedLine1, expectedLine2, expectedLine3]);
     });
 
-    it('should select all graphical items', () => {
-      const { spy } = renderTestCase(selectAllGraphicalItemsSettings);
+    it('should select all graphical items', async () => {
+      const { spy } = await renderTestCase(selectAllGraphicalItemsSettings);
       expectLastCalledWith(spy, [expectedLine1, expectedLine2, expectedLine3]);
     });
 
-    it('should select tooltip data defined on graphical items', () => {
-      const { spy } = renderTestCase(selectTooltipGraphicalItemsData);
+    it('should select tooltip data defined on graphical items', async () => {
+      const { spy } = await renderTestCase(selectTooltipGraphicalItemsData);
       expectLastCalledWith(spy, [
         {
           amt: 2400,
@@ -646,8 +653,8 @@ describe('Tooltip payload', () => {
       ]);
     });
 
-    it('should select tooltip displayed data', () => {
-      const { spy } = renderTestCase(selectTooltipDisplayedData);
+    it('should select tooltip displayed data', async () => {
+      const { spy } = await renderTestCase(selectTooltipDisplayedData);
       expectLastCalledWith(spy, [
         {
           amt: 2400,
@@ -760,26 +767,26 @@ describe('Tooltip payload', () => {
       ]);
     });
 
-    it('should select tooltip axis domain', () => {
-      const { spy } = renderTestCase(selectTooltipAxisDomain);
+    it('should select tooltip axis domain', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisDomain);
       expectLastCalledWith(spy, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
     });
 
-    it('should select tooltip axis domain with nice ticks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisDomainIncludingNiceTicks);
+    it('should select tooltip axis domain with nice ticks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisDomainIncludingNiceTicks);
       expectLastCalledWith(spy, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
     });
 
-    it('should select tooltip axis scale', () => {
-      const { spy } = renderTestCase(selectTooltipAxisScale);
+    it('should select tooltip axis scale', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisScale);
       expectLastCalledWithScale(spy, {
         domain: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
         range: [5, 395],
       });
     });
 
-    it('should select tooltip ticks', () => {
-      const { spy } = renderTestCase(selectTooltipAxisTicks);
+    it('should select tooltip ticks', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisTicks);
       expectLastCalledWith(spy, [
         {
           coordinate: 5,
@@ -892,8 +899,8 @@ describe('Tooltip payload', () => {
       ]);
     });
 
-    it('should select Tooltip payload when given defaultIndex', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+    it('should select Tooltip payload when given defaultIndex', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '0'));
       expectLastCalledWith(spy, [
         {
           color: '#3182bd',
@@ -958,8 +965,8 @@ describe('Tooltip payload', () => {
       ]);
     });
 
-    it('should select dataStartIndex and dataEndIndex', () => {
-      const { spy } = renderTestCase(selectChartDataWithIndexes);
+    it('should select dataStartIndex and dataEndIndex', async () => {
+      const { spy } = await renderTestCase(selectChartDataWithIndexes);
       expectLastCalledWith(spy, {
         chartData: undefined,
         dataEndIndex: 0,
@@ -968,8 +975,10 @@ describe('Tooltip payload', () => {
       });
     });
 
-    it('should select tooltip payload settings for every graphical item', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayloadConfigurations(state, 'axis', 'hover', undefined));
+    it('should select tooltip payload settings for every graphical item', async () => {
+      const { spy } = await renderTestCase(state =>
+        selectTooltipPayloadConfigurations(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, [
         {
           getPosition: noop,
@@ -1137,12 +1146,12 @@ describe('Tooltip payload', () => {
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should select Tooltip payload after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', undefined));
+    it('should select Tooltip payload after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', undefined));
       expectLastCalledWith(spy, undefined);
       expect(spy).toHaveBeenCalledTimes(1);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartDataOnGraphicalItemTestCase.mouseHoverSelector,
         LineChartDataOnGraphicalItemTestCase.mouseCoordinate,
@@ -1213,38 +1222,40 @@ describe('Tooltip payload', () => {
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should show tooltip after mouse hover', () => {
-      const { container } = renderTestCase();
+    it('should show tooltip after mouse hover', async () => {
+      const { container } = await renderTestCase();
 
-      expectTooltipNotVisible(container);
+      await expectTooltipNotVisible(container);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartDataOnGraphicalItemTestCase.mouseHoverSelector,
         LineChartDataOnGraphicalItemTestCase.mouseCoordinate,
       );
 
-      expectTooltipPayload(
+      await expectTooltipPayload(
         container,
         LineChartDataOnGraphicalItemTestCase.expectedTooltipTitle,
         LineChartDataOnGraphicalItemTestCase.expectedTooltipContent,
       );
     });
 
-    it('should select active label', () => {
-      const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+    it('should select active label', async () => {
+      const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
       expectLastCalledWith(spy, 2);
     });
 
-    it('should select isActive and activeIndex, and update it after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+    it('should select isActive and activeIndex, and update it after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectIsTooltipActive(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, {
         activeIndex: null,
         isActive: false,
       });
       expect(spy).toHaveBeenCalledTimes(2);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartDataOnGraphicalItemTestCase.mouseHoverSelector,
         LineChartDataOnGraphicalItemTestCase.mouseCoordinate,
@@ -1257,12 +1268,14 @@ describe('Tooltip payload', () => {
       expect(spy).toHaveBeenCalledTimes(3);
     });
 
-    it('should select active coordinate', () => {
-      const { container, spy } = renderTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+    it('should select active coordinate', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectActiveCoordinate(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, undefined);
       expect(spy).toHaveBeenCalledTimes(1);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartDataOnGraphicalItemTestCase.mouseHoverSelector,
         LineChartDataOnGraphicalItemTestCase.mouseCoordinate,
@@ -1284,18 +1297,18 @@ describe('Tooltip payload', () => {
       </LineChartVerticalTestCase.Wrapper>
     ));
 
-    it('should select tooltip axis type', () => {
-      const { spy } = renderTestCase(selectTooltipAxisType);
+    it('should select tooltip axis type', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisType);
       expectLastCalledWith(spy, 'yAxis');
     });
 
-    it('should select tooltip axis ID', () => {
-      const { spy } = renderTestCase(selectTooltipAxisId);
+    it('should select tooltip axis ID', async () => {
+      const { spy } = await renderTestCase(selectTooltipAxisId);
       expectLastCalledWith(spy, 0);
     });
 
-    it('should select dataStartIndex and dataEndIndex', () => {
-      const { spy } = renderTestCase(selectChartDataWithIndexes);
+    it('should select dataStartIndex and dataEndIndex', async () => {
+      const { spy } = await renderTestCase(selectChartDataWithIndexes);
       expectLastCalledWith(spy, {
         chartData: [
           {
@@ -1341,17 +1354,19 @@ describe('Tooltip payload', () => {
       });
     });
 
-    it('should select active label', () => {
-      const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+    it('should select active label', async () => {
+      const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
       expectLastCalledWith(spy, 'Page C');
     });
 
-    it('should select active coordinate', () => {
-      const { container, spy } = renderTestCase(state => selectActiveCoordinate(state, 'axis', 'hover', undefined));
+    it('should select active coordinate', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectActiveCoordinate(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, undefined);
       expect(spy).toHaveBeenCalledTimes(1);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartVerticalTestCase.mouseHoverSelector,
         LineChartVerticalTestCase.mouseCoordinate,
@@ -1364,15 +1379,17 @@ describe('Tooltip payload', () => {
       expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it('should select isActive and activeIndex, and update it after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectIsTooltipActive(state, 'axis', 'hover', undefined));
+    it('should select isActive and activeIndex, and update it after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state =>
+        selectIsTooltipActive(state, 'axis', 'hover', undefined),
+      );
       expectLastCalledWith(spy, {
         activeIndex: null,
         isActive: false,
       });
       expect(spy).toHaveBeenCalledTimes(3);
 
-      showTooltipOnCoordinate(
+      await showTooltipOnCoordinate(
         container,
         LineChartVerticalTestCase.mouseHoverSelector,
         LineChartVerticalTestCase.mouseCoordinate,
@@ -1392,8 +1409,8 @@ describe('Tooltip payload', () => {
    */
   describe.skip('filterNull prop', () => {
     const dataWithNulls: Array<{ x: number | null; y: number | null }> = [{ x: null, y: 2 }];
-    test.each([undefined, true])('should filter away nulls when filterNull = %s', filterNull => {
-      const { container, debug } = render(
+    test.each([undefined, true])('should filter away nulls when filterNull = %s', async filterNull => {
+      const { container, debug } = await render(
         <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <XAxis dataKey="x" />
           <YAxis dataKey="y" />
@@ -1402,13 +1419,13 @@ describe('Tooltip payload', () => {
         </ScatterChart>,
       );
 
-      showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
+      await showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
 
-      expectTooltipPayload(container, '', ['y : 2']);
+      await expectTooltipPayload(container, '', ['y : 2']);
     });
 
-    it('should display nulls when filterNull = false', () => {
-      const { container, debug } = render(
+    it('should display nulls when filterNull = false', async () => {
+      const { container, debug } = await render(
         <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <XAxis dataKey="x" />
           <YAxis dataKey="y" />
@@ -1417,9 +1434,9 @@ describe('Tooltip payload', () => {
         </ScatterChart>,
       );
 
-      showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
+      await showTooltip(container, ScatterChartTestCase.mouseHoverSelector, debug);
 
-      expectTooltipPayload(container, '', ['x : ', 'y : 2']);
+      await expectTooltipPayload(container, '', ['x : ', 'y : 2']);
     });
   });
 
@@ -1429,7 +1446,7 @@ describe('Tooltip payload', () => {
    */
   describe.todo('payloadUniqBy prop');
 
-  it('should contain payload data from multiple datasets', () => {
+  it('should contain payload data from multiple datasets', async () => {
     const lineData1 = [
       { category: 'A', value: 0.2 },
       { category: 'B', value: 0.3 },
@@ -1448,7 +1465,7 @@ describe('Tooltip payload', () => {
       { category: 'F', value: 0.6 },
     ];
 
-    const { container, debug } = render(
+    const { container, debug } = await render(
       <div role="main" style={{ width: '400px', height: '400px' }}>
         <ComposedChart width={400} height={400}>
           <XAxis dataKey="category" type="category" />
@@ -1461,15 +1478,15 @@ describe('Tooltip payload', () => {
       </div>,
     );
 
-    showTooltip(container, ComposedChartTestCase.mouseHoverSelector, debug);
+    await showTooltip(container, ComposedChartTestCase.mouseHoverSelector, debug);
 
-    expectTooltipPayload(container, 'E', ['value : 0.7', 'value : 0.4']);
+    await expectTooltipPayload(container, 'E', ['value : 0.7', 'value : 0.4']);
   });
 
   describe('shared prop', () => {
     describe('in BarChart', () => {
-      it('when true, should render tooltip payload with data from all Bars', () => {
-        const { container, debug } = render(
+      it('when true, should render tooltip payload with data from all Bars', async () => {
+        const { container, debug } = await render(
           <BarChart {...commonChartProps} data={PageData}>
             <Bar dataKey="uv" unit="kg" />
             <Bar dataKey="pv" unit="$$$" name="My custom name" />
@@ -1478,15 +1495,15 @@ describe('Tooltip payload', () => {
           </BarChart>,
         );
 
-        showTooltip(container, barChartMouseHoverTooltipSelector, debug);
+        await showTooltip(container, barChartMouseHoverTooltipSelector, debug);
 
         const expectedTooltipTitle = '2';
         const expectedTooltipContent = ['My custom name : 1398$$$', 'amt : 2400', 'uv : 300kg'];
-        expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
+        await expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
       });
 
-      it('when false, should render tooltip payload with data from single Bar', () => {
-        const { container, debug } = render(
+      it('when false, should render tooltip payload with data from single Bar', async () => {
+        const { container, debug } = await render(
           <BarChart {...commonChartProps} data={PageData}>
             <Bar dataKey="uv" unit="kg" />
             <Bar dataKey="pv" unit="$$$" name="My custom name" />
@@ -1495,20 +1512,20 @@ describe('Tooltip payload', () => {
           </BarChart>,
         );
 
-        showTooltip(container, barMouseHoverTooltipSelector, debug);
+        await showTooltip(container, barMouseHoverTooltipSelector, debug);
 
         const expectedTooltipTitle = '';
         const expectedTooltipContent = ['uv : 400kg'];
-        expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
+        await expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
       });
 
-      it('when false in vertical layout with sparse data, should show correct payload for each bar (issue #7261)', () => {
+      it('when false in vertical layout with sparse data, should show correct payload for each bar (issue #7261)', async () => {
         const sparseData = [
           { category: 'A', bar1: [0, 10] },
           { category: 'B', bar2: [5, 20] },
         ];
 
-        const { container } = render(
+        const { container } = await render(
           <BarChart layout="vertical" {...commonChartProps} data={sparseData}>
             <XAxis type="number" domain={[0, 30]} />
             <YAxis type="category" dataKey="category" />
@@ -1525,21 +1542,17 @@ describe('Tooltip payload', () => {
         const bar1Group = barGroups[0];
         const bar1Rect = bar1Group.querySelector(barMouseHoverTooltipSelector);
         assertNotNull(bar1Rect);
-        fireEvent.mouseOver(bar1Rect, { clientX: 100, clientY: 100 });
-        act(() => {
-          vi.runOnlyPendingTimers();
-        });
-        expectTooltipPayload(container, '', ['bar1 : 0 ~ 10']);
+        await fireEvent.mouseOver(bar1Rect, { clientX: 100, clientY: 100 });
+        await flushPendingFrames();
+        await expectTooltipPayload(container, '', ['bar1 : 0 ~ 10']);
 
         // Hover bar2 (row B) — should show bar2's payload, not bar1's
         const bar2Group = barGroups[1];
         const bar2Rect = bar2Group.querySelector(barMouseHoverTooltipSelector);
         assertNotNull(bar2Rect);
-        fireEvent.mouseOver(bar2Rect, { clientX: 200, clientY: 200 });
-        act(() => {
-          vi.runOnlyPendingTimers();
-        });
-        expectTooltipPayload(container, '', ['bar2 : 5 ~ 20']);
+        await fireEvent.mouseOver(bar2Rect, { clientX: 200, clientY: 200 });
+        await flushPendingFrames();
+        await expectTooltipPayload(container, '', ['bar2 : 5 ~ 20']);
       });
     });
 
@@ -1555,18 +1568,18 @@ describe('Tooltip payload', () => {
           </RadialBarChart>
         ));
 
-        it('should select tooltip axis type', () => {
-          const { spy } = renderTestCase(selectTooltipAxisType);
+        it('should select tooltip axis type', async () => {
+          const { spy } = await renderTestCase(selectTooltipAxisType);
           expectLastCalledWith(spy, 'radiusAxis');
         });
 
-        it('should select tooltip axis ID', () => {
-          const { spy } = renderTestCase(selectTooltipAxisId);
+        it('should select tooltip axis ID', async () => {
+          const { spy } = await renderTestCase(selectTooltipAxisId);
           expectLastCalledWith(spy, 0);
         });
 
-        it('should select tooltip axis settings', () => {
-          const { spy } = renderTestCase(selectTooltipAxis);
+        it('should select tooltip axis settings', async () => {
+          const { spy } = await renderTestCase(selectTooltipAxis);
           expectLastCalledWith(spy, {
             allowDataOverflow: false,
             allowDecimals: false,
@@ -1587,8 +1600,8 @@ describe('Tooltip payload', () => {
           });
         });
 
-        it('should select tooltip axis ticks', () => {
-          const { spy } = renderTestCase(selectTooltipAxisTicks);
+        it('should select tooltip axis ticks', async () => {
+          const { spy } = await renderTestCase(selectTooltipAxisTicks);
           expectLastCalledWith(spy, [
             {
               coordinate: 19.666666666666668,
@@ -1629,25 +1642,25 @@ describe('Tooltip payload', () => {
           ]);
         });
 
-        it('should select active label', () => {
-          const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
+        it('should select active label', async () => {
+          const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '2'));
           expectLastCalledWith(spy, 2);
         });
 
-        it('should render tooltip payload with data from all Bars', () => {
-          const { container, debug } = renderTestCase();
+        it('should render tooltip payload with data from all Bars', async () => {
+          const { container, debug } = await renderTestCase();
 
-          showTooltip(container, radialBarChartMouseHoverTooltipSelector, debug);
+          await showTooltip(container, radialBarChartMouseHoverTooltipSelector, debug);
 
           const expectedTooltipTitle = '3';
           const expectedTooltipContent = ['My custom name : 9800', 'amt : 2400', 'uv : 200'];
-          expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
+          await expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
         });
       });
 
       describe('when false', () => {
-        it('should render tooltip payload with data from single Bar', () => {
-          const { container, debug } = render(
+        it('should render tooltip payload with data from single Bar', async () => {
+          const { container, debug } = await render(
             <RadialBarChart height={600} width={600} data={PageData}>
               <RadialBar dataKey="uv" isAnimationActive={false} />
               <RadialBar dataKey="pv" name="My custom name" isAnimationActive={false} />
@@ -1656,10 +1669,10 @@ describe('Tooltip payload', () => {
             </RadialBarChart>,
           );
 
-          showTooltip(container, radialBarMouseHoverTooltipSelector, debug);
+          await showTooltip(container, radialBarMouseHoverTooltipSelector, debug);
           const expectedTooltipTitle = '';
           const expectedTooltipContent = ['uv : 400'];
-          expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
+          await expectTooltipPayload(container, expectedTooltipTitle, expectedTooltipContent);
         });
       });
     });

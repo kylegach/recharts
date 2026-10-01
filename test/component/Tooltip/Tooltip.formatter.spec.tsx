@@ -2,10 +2,10 @@ import { describe, it, beforeEach } from 'vitest';
 import React from 'react';
 import { BarChart, YAxis, XAxis, Tooltip, Bar } from '../../../src';
 import { PageData } from '../../_data';
-import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from './tooltipTestHelpers';
+import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 
@@ -37,18 +37,18 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
       </BarChart>
     ));
 
-    it('should render inside tooltip value what the formatter returned', () => {
-      const { container } = renderTestCase();
+    it('should render inside tooltip value what the formatter returned', async () => {
+      const { container } = await renderTestCase();
 
-      expectTooltipNotVisible(container);
+      await expectTooltipNotVisible(container);
 
-      showTooltip(container, barChartMouseHoverTooltipSelector);
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'ultraviolet : FORMATTED']);
+      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'ultraviolet : FORMATTED']);
     });
 
-    it('should select payload', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
+    it('should select payload', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
       expectLastCalledWith(spy, [
         {
           color: '#8884d8',
@@ -116,18 +116,18 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
       </BarChart>
     ));
 
-    it('should render inside tooltip value what the formatter returned', () => {
-      const { container } = renderTestCase();
+    it('should render inside tooltip value what the formatter returned', async () => {
+      const { container } = await renderTestCase();
 
-      expectTooltipNotVisible(container);
+      await expectTooltipNotVisible(container);
 
-      showTooltip(container, barChartMouseHoverTooltipSelector);
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'FORMATTED']);
+      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'FORMATTED']);
     });
 
-    it('should select payload', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
+    it('should select payload', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
       expectLastCalledWith(spy, [
         {
           color: '#8884d8',

@@ -1,10 +1,10 @@
 import React, { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, Mock } from 'vitest';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { PageData } from '../../_data';
 import { Area, AreaChart, Tooltip, TooltipContentProps } from '../../../src';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
-import { showTooltip } from './tooltipTestHelpers';
+import { showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { areaChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 
@@ -31,9 +31,9 @@ describe('Tooltip.content', () => {
     </AreaChart>
   ));
 
-  it('should be called and receive payload before any user interactions', () => {
+  it('should be called and receive payload before any user interactions', async () => {
     expect(spy).toHaveBeenCalledTimes(0);
-    renderTestCase();
+    await renderTestCase();
     expect(spy).toHaveBeenCalledTimes(2);
     expectLastCalledWith(
       spy,
@@ -74,9 +74,9 @@ describe('Tooltip.content', () => {
     );
   });
 
-  it('should be called and receive payload on hover', () => {
-    const { container, debug } = renderTestCase();
-    showTooltip(container, areaChartMouseHoverTooltipSelector, debug);
+  it('should be called and receive payload on hover', async () => {
+    const { container, debug } = await renderTestCase();
+    await showTooltip(container, areaChartMouseHoverTooltipSelector, debug);
     expect(spy).toHaveBeenCalledTimes(3);
     expectLastCalledWith(
       spy,

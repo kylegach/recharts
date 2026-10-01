@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { page } from 'vitest/browser';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { Bar, BarChart, Line, LineChart, Pie, PieChart, Tooltip, XAxis, YAxis } from '../../../src';
 import { PageData } from '../../_data';
 import { selectActiveIndex, selectActiveLabel, selectTooltipPayload } from '../../../src/state/selectors/selectors';
-import { expectTooltipPayload, showTooltip } from './tooltipTestHelpers';
+import { expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector, pieChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
@@ -21,8 +22,8 @@ describe('defaultIndex', () => {
       </BarChart>
     ));
 
-    it('should select tooltip payload', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '3'));
+    it('should select tooltip payload', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '3'));
       expectLastCalledWith(spy, [
         {
           color: undefined,
@@ -47,10 +48,10 @@ describe('defaultIndex', () => {
       ]);
     });
 
-    it('should update the payload after mouse hover', () => {
+    it('should update the payload after mouse hover', async () => {
       mockGetBoundingClientRect({ width: 100, height: 100 });
-      const { container, spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', undefined));
-      showTooltip(container, barChartMouseHoverTooltipSelector);
+      const { container, spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', undefined));
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
       expectLastCalledWith(spy, [
         {
           color: undefined,
@@ -75,9 +76,9 @@ describe('defaultIndex', () => {
       ]);
     });
 
-    it('should render tooltip before user interaction', () => {
-      const { container } = renderTestCase();
-      expectTooltipPayload(container, 'Page D', ['uv : 200']);
+    it('should render tooltip before user interaction', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipPayload(container, 'Page D', ['uv : 200']);
     });
   });
 
@@ -93,8 +94,8 @@ describe('defaultIndex', () => {
       </LineChart>
     ));
 
-    it('should select tooltip axis ticks', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '3'));
+    it('should select tooltip axis ticks', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '3'));
       expectLastCalledWith(spy, [
         {
           color: '#3182bd',
@@ -119,14 +120,14 @@ describe('defaultIndex', () => {
       ]);
     });
 
-    it('should select active label', () => {
-      const { spy } = renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '3'));
+    it('should select active label', async () => {
+      const { spy } = await renderTestCase(state => selectActiveLabel(state, 'axis', 'hover', '3'));
       expectLastCalledWith(spy, 'Page D');
     });
 
-    it('should render tooltip before user interaction', () => {
-      const { container } = renderTestCase();
-      expectTooltipPayload(container, 'Page D', ['uv : 200']);
+    it('should render tooltip before user interaction', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipPayload(container, 'Page D', ['uv : 200']);
     });
   });
 
@@ -138,24 +139,24 @@ describe('defaultIndex', () => {
       </PieChart>
     ));
 
-    it('should select active index as the default', () => {
-      const { spy } = renderTestCase(state => selectActiveIndex(state, 'item', 'hover', '3'));
+    it('should select active index as the default', async () => {
+      const { spy } = await renderTestCase(state => selectActiveIndex(state, 'item', 'hover', '3'));
       expectLastCalledWith(spy, '3');
     });
 
-    it('should render sectors', () => {
-      const { container } = renderTestCase();
-      expect(container.querySelectorAll(pieChartMouseHoverTooltipSelector)).toHaveLength(6);
+    it('should render sectors', async () => {
+      await renderTestCase();
+      expect(page.getByCSS(pieChartMouseHoverTooltipSelector).elements()).toHaveLength(6);
     });
 
-    it('should update the active index after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectActiveIndex(state, 'item', 'hover', '3'));
-      showTooltip(container, pieChartMouseHoverTooltipSelector);
+    it('should update the active index after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state => selectActiveIndex(state, 'item', 'hover', '3'));
+      await showTooltip(container, pieChartMouseHoverTooltipSelector);
       expectLastCalledWith(spy, '0');
     });
 
-    it('should select tooltip payload', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'item', 'hover', '3'));
+    it('should select tooltip payload', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'item', 'hover', '3'));
       expectLastCalledWith(spy, [
         {
           color: '#808080',
@@ -180,9 +181,9 @@ describe('defaultIndex', () => {
       ]);
     });
 
-    it('should update the payload after mouse hover', () => {
-      const { container, spy } = renderTestCase(state => selectTooltipPayload(state, 'item', 'hover', '3'));
-      showTooltip(container, pieChartMouseHoverTooltipSelector);
+    it('should update the payload after mouse hover', async () => {
+      const { container, spy } = await renderTestCase(state => selectTooltipPayload(state, 'item', 'hover', '3'));
+      await showTooltip(container, pieChartMouseHoverTooltipSelector);
       expectLastCalledWith(spy, [
         {
           color: '#808080',

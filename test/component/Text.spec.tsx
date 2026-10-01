@@ -1,15 +1,23 @@
-import { render, screen } from '@testing-library/react';
+import { LocatorSelectors } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
 import React from 'react';
 import { vi } from 'vitest';
 import { Surface, Text } from '../../src';
 import { mockGetBoundingClientRect } from '../helper/mockGetBoundingClientRect';
 import { getWordsByLines } from '../../src/component/Text';
 import * as DOMUtils from '../../src/util/DOMUtils';
-import { assertNotNull } from '../helper/assertNotNull';
 
 // Browser Mode cannot spy on ESM exports directly. This wraps every export in a spy that calls the original.
 // See https://vitest.dev/guide/browser/#spying-on-module-exports
 vi.mock('../../src/util/DOMUtils', { spy: true });
+
+/**
+ * The tests give Text role="img". In the browser, the Surface <svg> has the implicit img role too,
+ * so match only the <text> element.
+ */
+function getTextImage(screen: LocatorSelectors) {
+  return screen.getByRole('img').and(screen.getByCSS('text'));
+}
 
 describe('<Text />', () => {
   const mockRect = {
@@ -18,8 +26,8 @@ describe('<Text />', () => {
   };
   beforeEach(() => mockGetBoundingClientRect(mockRect));
 
-  test('Does not wrap long text if enough width', () => {
-    render(
+  test('Does not wrap long text if enough width', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text role="img" width={300} style={{ fontFamily: 'Courier' }}>
           This is really long text
@@ -27,14 +35,14 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text?.children).toHaveLength(1);
+    expect(text.element().children).toHaveLength(1);
   });
 
-  test('renders number children', () => {
-    const { container } = render(
+  test('renders number children', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text width={300} style={{ fontFamily: 'Courier' }}>
           {12345}
@@ -42,15 +50,14 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text.textContent).toBe('12345');
+    expect(text.element().textContent).toBe('12345');
   });
 
-  test('renders boolean children', () => {
-    const { container } = render(
+  test('renders boolean children', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text width={300} style={{ fontFamily: 'Courier' }}>
           {true}
@@ -58,14 +65,13 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
-    expect(text.textContent).toBe('true');
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
+    expect(text.element().textContent).toBe('true');
   });
 
-  test('renders the string "NaN" when children is NaN', () => {
-    const { container } = render(
+  test('renders the string "NaN" when children is NaN', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text width={300} style={{ fontFamily: 'Courier' }}>
           {NaN}
@@ -73,14 +79,13 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
-    expect(text.textContent).toBe('NaN');
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
+    expect(text.element().textContent).toBe('NaN');
   });
 
-  test.each([null, undefined] as const)('Renders nothing when children is %s', (children: null | undefined) => {
-    const { container } = render(
+  test.each([null, undefined] as const)('Renders nothing when children is %s', async (children: null | undefined) => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text width={300} style={{ fontFamily: 'Courier' }}>
           {children}
@@ -88,12 +93,11 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    expect(text).not.toBeInTheDocument();
+    await expect.element(screen.getByCSS('text')).not.toBeInTheDocument();
   });
 
-  test('renders object object when children are React elements', () => {
-    const { container } = render(
+  test('renders object object when children are React elements', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         {/* @ts-expect-error typescript is correct here, Text doesn't accept ReactElement, the test is to demonstrate that */}
         <Text width={300} style={{ fontFamily: 'Courier' }}>
@@ -107,29 +111,28 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
-    expect(text.textContent).toBe('[object Object],[object Object]');
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
+    expect(text.element().textContent).toBe('[object Object],[object Object]');
   });
 
-  test('Wraps long text if not enough width', () => {
-    render(
+  test('Wraps long text if not enough width', async () => {
+    const screen = await render(
       <Surface width={200} height={200}>
         <Text role="img" width={200} style={{ fontFamily: 'Courier' }}>
           This is really long text for 200px
         </Text>
       </Surface>,
     );
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text?.children).toHaveLength(2);
+    expect(text.element().children).toHaveLength(2);
   });
 
-  test('Wraps long text if styled but would have had enough room', () => {
+  test('Wraps long text if styled but would have had enough room', async () => {
     mockGetBoundingClientRect({ ...mockRect, width: 40 });
-    render(
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" width={300} style={{ fontSize: '2em', fontFamily: 'Courier' }}>
           This is really long text
@@ -137,30 +140,32 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text?.children).toHaveLength(2);
+    expect(text.element().children).toHaveLength(2);
   });
 
-  test('Does not perform word length calculation if width or scaleToFit props not set', () => {
-    render(
+  test('Does not perform word length calculation if width or scaleToFit props not set', async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img">This is really long text</Text>
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text?.children).toHaveLength(1);
+    expect(text.element().children).toHaveLength(1);
     // we know that the children that get rendered under `text` are `tspan` - this is a safe cast if we get a result
-    const { transform } = (text?.children[0] as SVGTSpanElement).attributes as NamedNodeMap & { transform: unknown };
+    const { transform } = (text.element().children[0] as SVGTSpanElement).attributes as NamedNodeMap & {
+      transform: unknown;
+    };
     expect(transform).toBeUndefined();
   });
 
-  test('Render 0 successfully when width is specified', () => {
-    render(
+  test('Render 0 successfully when width is specified', async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" x={0} y={0} width={30}>
           {0}
@@ -168,16 +173,14 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    setTimeout(() => {
-      expect(text.textContent).toContain('0');
-    }, 1000);
+    await expect.element(text).toHaveTextContent('0');
   });
 
-  test('Render 0 successfully when width is not specified', () => {
-    render(
+  test('Render 0 successfully when width is not specified', async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" x={0} y={0}>
           {0}
@@ -185,16 +188,14 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    setTimeout(() => {
-      expect(text.textContent).toContain('0');
-    }, 1000);
+    await expect.element(text).toHaveTextContent('0');
   });
 
-  test('Renders nothing when x or y is a percentage', () => {
-    render(
+  test('Renders nothing when x or y is a percentage', async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" x="50%" y="50%">
           anything
@@ -202,12 +203,11 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.queryByRole('img');
-    expect(text).not.toBeInTheDocument();
+    await expect.element(getTextImage(screen)).not.toBeInTheDocument();
   });
 
-  test("Don't Render text when x or y is NaN", () => {
-    render(
+  test("Don't Render text when x or y is NaN", async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" x={NaN} y={10}>
           anything
@@ -215,13 +215,12 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.queryByRole('img');
-    expect(text).not.toBeInTheDocument();
+    await expect.element(getTextImage(screen)).not.toBeInTheDocument();
   });
 
-  test('Only split contents on breaking spaces', () => {
+  test('Only split contents on breaking spaces', async () => {
     const testString = 'These spaces\tshould\nbreak,\rbut\xA0these\xA0should\xA0not.';
-    render(
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text role="img" width="auto">
           {testString}
@@ -229,22 +228,22 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByRole('img');
-    expect(text).toBeInTheDocument();
+    const text = getTextImage(screen);
+    await expect.element(text).toBeInTheDocument();
 
-    expect(text?.children).toHaveLength(5);
+    expect(text.element().children).toHaveLength(5);
   });
 
   describe('maxLines', () => {
-    test('does not do anything when maxLines are not exceeded', () => {
-      render(
+    test('does not do anything when maxLines are not exceeded', async () => {
+      const screen = await render(
         <Surface width={300} height={200}>
           <Text role="img" width={500} maxLines={3}>
             test
           </Text>
         </Surface>,
       );
-      render(
+      await render(
         <Surface width={300} height={200}>
           <Text role="img" width={500}>
             test
@@ -252,17 +251,17 @@ describe('<Text />', () => {
         </Surface>,
       );
 
-      const text = screen.getAllByRole('img');
-      expect(text[0]).toBeInTheDocument();
+      const text = getTextImage(screen).elements();
+      await expect.element(getTextImage(screen).first()).toBeInTheDocument();
 
       expect(text[0]?.textContent).toEqual(text[1]?.textContent);
     });
 
-    test('limits the output to maxLines', () => {
+    test('limits the output to maxLines', async () => {
       const testString = `Lorem ratione omnis fuga dignissimos in amet. Minus quam architecto non ea iste!
         Nihil amet in itaque error velit. Corporis autem sequi aut temporibus placeat.
         Perferendis quos veritatis quasi pariatur!`;
-      render(
+      const screen = await render(
         <Surface width={300} height={200}>
           <Text role="img" width={200} maxLines={2}>
             {testString}
@@ -270,17 +269,17 @@ describe('<Text />', () => {
         </Surface>,
       );
 
-      const text = screen.getByRole('img');
-      expect(text).toBeInTheDocument();
+      const text = getTextImage(screen);
+      await expect.element(text).toBeInTheDocument();
 
-      expect(text?.children).toHaveLength(2);
+      expect(text.element().children).toHaveLength(2);
     });
 
-    test('adds an ellipsis at the end of the truncated line', () => {
+    test('adds an ellipsis at the end of the truncated line', async () => {
       const testString = `Sit totam suscipit aliquid suscipit eius, cupiditate Aut excepturi ipsum ut suscipit
         facilis debitis Provident impedit a distinctio neque quaerat Optio quo quibusdam possimus
         provident accusantium. Molestiae similique nemo labore`;
-      render(
+      const screen = await render(
         <Surface width={300} height={200}>
           <Text role="img" width={200} maxLines={2}>
             {testString}
@@ -288,9 +287,10 @@ describe('<Text />', () => {
         </Surface>,
       );
 
-      const text = screen.getByRole('img');
-      expect(text).toBeInTheDocument();
-      const lastChild = text.children[text.children.length - 1];
+      const text = getTextImage(screen);
+      await expect.element(text).toBeInTheDocument();
+      const { children } = text.element();
+      const lastChild = children[children.length - 1];
       const lastLetter = lastChild.textContent[lastChild.textContent.length - 1];
 
       expect(lastLetter).toEqual('…');
@@ -373,8 +373,8 @@ describe('scaleToFit=true', () => {
     mockGetBoundingClientRect({ width: 50, height: 20 });
   });
 
-  it('scales text to fit the width', () => {
-    const { container } = render(
+  it('scales text to fit the width', async () => {
+    const screen = await render(
       <Surface width={300} height={300}>
         <Text width={200} scaleToFit>
           This is really long text
@@ -382,34 +382,31 @@ describe('scaleToFit=true', () => {
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
-    expect(text).toHaveAttribute('transform', 'scale(0.5714285714285714)');
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
+    await expect.element(text).toHaveAttribute('transform', 'scale(0.5714285714285714)');
   });
 
-  it('does not scale text to fit if width is not provided', () => {
-    const { container } = render(
+  it('does not scale text to fit if width is not provided', async () => {
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text scaleToFit>This is really long text</Text>
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    assertNotNull(text);
-    expect(text).toBeInTheDocument();
-    expect(text).toHaveAttribute('transform', 'scale(1)');
+    const text = screen.getByCSS('text');
+    await expect.element(text).toBeInTheDocument();
+    await expect.element(text).toHaveAttribute('transform', 'scale(1)');
   });
 
-  it('should not throw errors if no children are provided', () => {
+  it('should not throw errors if no children are provided', async () => {
     // https://github.com/recharts/recharts/issues/6190
-    const { container } = render(
+    const screen = await render(
       <Surface width={300} height={200}>
         <Text width={200} scaleToFit />
       </Surface>,
     );
 
-    const text = container.querySelector('text');
-    expect(text).not.toBeInTheDocument();
+    await expect.element(screen.getByCSS('text')).not.toBeInTheDocument();
   });
 });

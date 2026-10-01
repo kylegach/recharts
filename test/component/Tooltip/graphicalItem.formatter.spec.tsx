@@ -6,10 +6,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
 import { BarChart, XAxis, YAxis, Tooltip, Bar, LineChart, Line } from '../../../src';
 import { PageData } from '../../_data';
-import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from './tooltipTestHelpers';
+import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector, lineChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 
@@ -31,8 +31,8 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       </BarChart>
     ));
 
-    it('should include formatter in the tooltip payload entry', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
+    it('should include formatter in the tooltip payload entry', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
       expectLastCalledWith(spy, [
         expect.objectContaining({
           dataKey: 'pv',
@@ -41,11 +41,11 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       ]);
     });
 
-    it('should render the formatted value in the tooltip', () => {
-      const { container } = renderTestCase();
-      expectTooltipNotVisible(container);
-      showTooltip(container, barChartMouseHoverTooltipSelector);
-      expectTooltipPayload(container, 'Page B', ['pv : BAR_FORMATTED']);
+    it('should render the formatted value in the tooltip', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipNotVisible(container);
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(container, 'Page B', ['pv : BAR_FORMATTED']);
     });
   });
 
@@ -63,11 +63,11 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       </BarChart>
     ));
 
-    it('should render value from the per-item formatter, not the tooltip-level formatter', () => {
-      const { container } = renderTestCase();
-      expectTooltipNotVisible(container);
-      showTooltip(container, barChartMouseHoverTooltipSelector);
-      expectTooltipPayload(container, 'Page B', ['pv : PER_BAR']);
+    it('should render value from the per-item formatter, not the tooltip-level formatter', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipNotVisible(container);
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(container, 'Page B', ['pv : PER_BAR']);
     });
   });
 
@@ -85,15 +85,15 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       </BarChart>
     ));
 
-    it('should apply per-item formatter to pv but not uv', () => {
-      const { container } = renderTestCase();
-      expectTooltipNotVisible(container);
-      showTooltip(container, barChartMouseHoverTooltipSelector);
-      expectTooltipPayload(container, 'Page B', ['pv : FORMATTED_PV', 'uv : 300']);
+    it('should apply per-item formatter to pv but not uv', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipNotVisible(container);
+      await showTooltip(container, barChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED_PV', 'uv : 300']);
     });
 
-    it('should include formatter only on the bar that has it', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
+    it('should include formatter only on the bar that has it', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
       expectLastCalledWith(spy, [
         expect.objectContaining({ dataKey: 'pv', formatter: barFormatterForPv }),
         expect.objectContaining({ dataKey: 'uv', formatter: undefined }),
@@ -114,8 +114,8 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       </LineChart>
     ));
 
-    it('should include formatter in the tooltip payload entry', () => {
-      const { spy } = renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
+    it('should include formatter in the tooltip payload entry', async () => {
+      const { spy } = await renderTestCase(state => selectTooltipPayload(state, 'axis', 'hover', '1'));
       expectLastCalledWith(spy, [
         expect.objectContaining({
           dataKey: 'pv',
@@ -124,11 +124,11 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       ]);
     });
 
-    it('should render the formatted value in the tooltip', () => {
-      const { container } = renderTestCase();
-      expectTooltipNotVisible(container);
-      showTooltip(container, lineChartMouseHoverTooltipSelector);
-      expectTooltipPayload(container, 'Page C', ['pv : LINE_FORMATTED']);
+    it('should render the formatted value in the tooltip', async () => {
+      const { container } = await renderTestCase();
+      await expectTooltipNotVisible(container);
+      await showTooltip(container, lineChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(container, 'Page C', ['pv : LINE_FORMATTED']);
     });
   });
 });

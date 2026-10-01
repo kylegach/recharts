@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
 import { describe, it, expect } from 'vitest';
 import { TooltipBoundingBox, TooltipBoundingBoxProps } from '../../src/component/TooltipBoundingBox';
 
@@ -35,52 +35,49 @@ describe('TooltipBoundingBox', () => {
     wrapperStyle: {},
     hasPortalFromProps: false,
   };
-  it('should render children when active prop is true', () => {
-    render(<TooltipBoundingBox {...defaultProps} />);
-    expect(screen.getByText('Hello world!')).toBeInTheDocument();
-    expect(screen.getByText('Hello world!')).toBeVisible();
+  it('should render children when active prop is true', async () => {
+    const screen = await render(<TooltipBoundingBox {...defaultProps} />);
+    await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
+    await expect.element(screen.getByText('Hello world!')).toBeVisible();
   });
 
-  it('should hide children when active prop is false', () => {
-    render(<TooltipBoundingBox {...defaultProps} active={false} />);
-    expect(screen.getByText('Hello world!')).toBeInTheDocument();
-    expect(screen.getByText('Hello world!')).not.toBeVisible();
+  it('should hide children when active prop is false', async () => {
+    const screen = await render(<TooltipBoundingBox {...defaultProps} active={false} />);
+    await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
+    await expect.element(screen.getByText('Hello world!')).not.toBeVisible();
   });
 
-  it('should hide children when there is no payload', () => {
-    render(<TooltipBoundingBox {...defaultProps} hasPayload={false} />);
-    expect(screen.getByText('Hello world!')).toBeInTheDocument();
-    expect(screen.getByText('Hello world!')).not.toBeVisible();
+  it('should hide children when there is no payload', async () => {
+    const screen = await render(<TooltipBoundingBox {...defaultProps} hasPayload={false} />);
+    await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
+    await expect.element(screen.getByText('Hello world!')).not.toBeVisible();
   });
 
   it('should hide children when dismissed using Escape key', async () => {
-    render(<TooltipBoundingBox {...defaultProps} />);
-    const user = userEvent.setup({
-      advanceTimers: vi.advanceTimersByTime.bind(vi),
-    });
+    const screen = await render(<TooltipBoundingBox {...defaultProps} />);
     const element = screen.getByText('Hello world!');
 
-    expect(element).toBeVisible();
+    await expect.element(element).toBeVisible();
 
-    await user.keyboard('{Escape}');
-    expect(element).toBeInTheDocument();
-    expect(element).not.toBeVisible();
+    await userEvent.keyboard('{Escape}');
+    await expect.element(element).toBeInTheDocument();
+    await expect.element(element).not.toBeVisible();
   });
 
   describe('offset prop', () => {
-    it('should accept number offset', () => {
-      render(<TooltipBoundingBox {...defaultProps} offset={15} />);
-      expect(screen.getByText('Hello world!')).toBeInTheDocument();
+    it('should accept number offset', async () => {
+      const screen = await render(<TooltipBoundingBox {...defaultProps} offset={15} />);
+      await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
     });
 
-    it('should accept Coordinate offset with different x and y values', () => {
-      render(<TooltipBoundingBox {...defaultProps} offset={{ x: 10, y: 20 }} />);
-      expect(screen.getByText('Hello world!')).toBeInTheDocument();
+    it('should accept Coordinate offset with different x and y values', async () => {
+      const screen = await render(<TooltipBoundingBox {...defaultProps} offset={{ x: 10, y: 20 }} />);
+      await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
     });
 
-    it('should accept Coordinate offset with negative values', () => {
-      render(<TooltipBoundingBox {...defaultProps} offset={{ x: -5, y: 15 }} />);
-      expect(screen.getByText('Hello world!')).toBeInTheDocument();
+    it('should accept Coordinate offset with negative values', async () => {
+      const screen = await render(<TooltipBoundingBox {...defaultProps} offset={{ x: -5, y: 15 }} />);
+      await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
     });
   });
 });

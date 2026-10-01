@@ -58,6 +58,9 @@ export default defineConfig({
           name: 'browser',
           setupFiles: [
             'test/vitest.setup.ts',
+            'vitest-browser-react',
+            'test/helper/browser/locators.ts',
+            'test/helper/browser/resetPointer.ts',
             'test/helper/toBeRechartsScale.ts',
             'test/helper/expectStackGroups.ts',
             './test/helper/expectFunctionReturning.ts',

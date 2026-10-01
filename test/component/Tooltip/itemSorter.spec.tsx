@@ -23,9 +23,9 @@ import {
   YAxis,
 } from '../../../src';
 import { PageData } from '../../_data';
-import { createSelectorTestCase } from '../../helper/createSelectorTestCase';
+import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { RechartsRootState } from '../../../src/state/store';
-import { expectTooltipPayload, showTooltip } from './tooltipTestHelpers';
+import { expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import {
   barChartMouseHoverTooltipSelector,
   composedChartMouseHoverTooltipSelector,
@@ -64,10 +64,10 @@ describe('itemSorter in ComposedChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'area : 200',
           'bar : 9800',
           'line : 2400',
@@ -76,8 +76,8 @@ describe('itemSorter in ComposedChart', () => {
         ]);
       });
 
-      it('should select tooltipPayloadConfigurations', () => {
-        const { spy } = renderTestCase(undefined, state =>
+      it('should select tooltipPayloadConfigurations', async () => {
+        const { spy } = await renderTestCase(undefined, state =>
           selectTooltipPayloadConfigurations(state, 'axis', 'hover', '0'),
         );
         expectLastCalledWith(spy, [
@@ -340,8 +340,8 @@ describe('itemSorter in ComposedChart', () => {
         ]);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: '#3182bd',
@@ -449,10 +449,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'line : 2400',
           'name : Page D',
           'bar : 9800',
@@ -463,10 +463,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'area : 200',
           'line : 2400',
           'bar : 9800',
@@ -477,10 +477,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'area : 200',
           'bar : 9800',
           'line : 2400',
@@ -491,10 +491,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'area : 200',
           'line : 2400',
           'bar : 9800',
@@ -503,11 +503,11 @@ describe('itemSorter in ComposedChart', () => {
         ]);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(5);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: '#3182bd',
@@ -633,10 +633,10 @@ describe('itemSorter in ComposedChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'Area : 200',
           'Bar : 9800',
           'Line : 2400',
@@ -645,8 +645,8 @@ describe('itemSorter in ComposedChart', () => {
         ]);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: '#3182bd',
@@ -754,10 +754,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'Line : 2400',
           'XAxis : Page D',
           'Bar : 9800',
@@ -768,10 +768,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'Area : 200',
           'Line : 2400',
           'Bar : 9800',
@@ -782,10 +782,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'Area : 200',
           'Bar : 9800',
           'Line : 2400',
@@ -796,10 +796,10 @@ describe('itemSorter in ComposedChart', () => {
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'Area : 200',
           'Line : 2400',
           'Bar : 9800',
@@ -808,11 +808,11 @@ describe('itemSorter in ComposedChart', () => {
         ]);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, composedChartMouseHoverTooltipSelector);
+        await showTooltip(container, composedChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(5);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: '#3182bd',
@@ -938,14 +938,14 @@ describe('itemSorter in PieChart', () => {
   }
 
   describe('when itemSorter is undefined', () => {
-    it('should render only one item in the Tooltip so there is nothing to sort', () => {
-      const { container } = renderTestCase(undefined);
-      showTooltip(container, pieChartMouseHoverTooltipSelector);
-      expectTooltipPayload(container, '', ['Page A : 400']);
+    it('should render only one item in the Tooltip so there is nothing to sort', async () => {
+      const { container } = await renderTestCase(undefined);
+      await showTooltip(container, pieChartMouseHoverTooltipSelector);
+      await expectTooltipPayload(container, '', ['Page A : 400']);
     });
 
-    it('should select payload with only one item so there is nothing to sort', () => {
-      const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'item', 'hover', '0'));
+    it('should select payload with only one item so there is nothing to sort', async () => {
+      const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'item', 'hover', '0'));
       expectLastCalledWith(spy, [
         {
           color: '#808080',
@@ -996,14 +996,14 @@ describe('itemSorter in RadarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: undefined,
@@ -1070,41 +1070,41 @@ describe('itemSorter in RadarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['uv : 189', 'amt : 2400', 'pv : 4800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['uv : 189', 'amt : 2400', 'pv : 4800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['amt : 2400', 'pv : 4800', 'uv : 189']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['uv : 189', 'amt : 2400', 'pv : 4800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['uv : 189', 'amt : 2400', 'pv : 4800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: undefined,
@@ -1189,14 +1189,14 @@ describe('itemSorter in RadarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: undefined,
@@ -1263,26 +1263,26 @@ describe('itemSorter in RadarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['Radar-uv : 189', 'Radar-amt : 2400', 'Radar-pv : 4800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['Radar-uv : 189', 'Radar-amt : 2400', 'Radar-pv : 4800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, radarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, radarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page F', ['Radar-amt : 2400', 'Radar-pv : 4800', 'Radar-uv : 189']);
       });
     });
   });
@@ -1312,14 +1312,14 @@ describe('itemSorter in RadialBarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             graphicalItemId: 'radialbar-uv',
@@ -1431,41 +1431,41 @@ describe('itemSorter in RadialBarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: undefined,
@@ -1613,18 +1613,18 @@ describe('itemSorter in RadialBarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'RadialBar-amt : 2400',
           'RadialBar-pv : 9800',
           'RadialBar-uv : 200',
         ]);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             graphicalItemId: 'radialbar-uv',
@@ -1736,10 +1736,10 @@ describe('itemSorter in RadialBarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'RadialBar-amt : 2400',
           'RadialBar-pv : 9800',
           'RadialBar-uv : 200',
@@ -1748,10 +1748,10 @@ describe('itemSorter in RadialBarChart', () => {
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'RadialBar-uv : 200',
           'RadialBar-amt : 2400',
           'RadialBar-pv : 9800',
@@ -1760,10 +1760,10 @@ describe('itemSorter in RadialBarChart', () => {
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'RadialBar-amt : 2400',
           'RadialBar-pv : 9800',
           'RadialBar-uv : 200',
@@ -1772,21 +1772,21 @@ describe('itemSorter in RadialBarChart', () => {
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', [
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', [
           'RadialBar-uv : 200',
           'RadialBar-amt : 2400',
           'RadialBar-pv : 9800',
         ]);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, radialBarChartMouseHoverTooltipSelector);
+        await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: undefined,
@@ -1942,14 +1942,14 @@ describe('itemSorter in stacked BarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: undefined,
@@ -2016,41 +2016,41 @@ describe('itemSorter in stacked BarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: undefined,
@@ -2135,14 +2135,14 @@ describe('itemSorter in stacked BarChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: undefined,
@@ -2209,41 +2209,41 @@ describe('itemSorter in stacked BarChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Bar-uv : 200', 'Bar-amt : 2400', 'Bar-pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Bar-uv : 200', 'Bar-amt : 2400', 'Bar-pv : 9800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Bar-amt : 2400', 'Bar-pv : 9800', 'Bar-uv : 200']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Bar-uv : 200', 'Bar-amt : 2400', 'Bar-pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Bar-uv : 200', 'Bar-amt : 2400', 'Bar-pv : 9800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: undefined,
@@ -2334,14 +2334,14 @@ describe('itemSorter in stacked AreaChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload sorted by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render payload sorted by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: '#3182bd',
@@ -2408,41 +2408,41 @@ describe('itemSorter in stacked AreaChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['amt : 2400', 'pv : 9800', 'uv : 200']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['uv : 200', 'amt : 2400', 'pv : 9800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: '#3182bd',
@@ -2527,14 +2527,14 @@ describe('itemSorter in stacked AreaChart', () => {
     }
 
     describe('when itemSorter is undefined', () => {
-      it('should render payload by name', () => {
-        const { container } = renderTestCase(undefined);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
+      it('should render payload by name', async () => {
+        const { container } = await renderTestCase(undefined);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
       });
 
-      it('should select payload sorted by name', () => {
-        const { spy } = renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
+      it('should select payload sorted by name', async () => {
+        const { spy } = await renderTestCase(undefined, state => selectTooltipPayload(state, 'axis', 'hover', '0'));
         expectLastCalledWith(spy, [
           {
             color: '#3182bd',
@@ -2601,41 +2601,41 @@ describe('itemSorter in stacked AreaChart', () => {
     });
 
     describe('when itemSorter=`dataKey`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('dataKey');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('dataKey');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
       });
     });
 
     describe('when itemSorter=`value`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('value');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Area-uv : 200', 'Area-amt : 2400', 'Area-pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('value');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Area-uv : 200', 'Area-amt : 2400', 'Area-pv : 9800']);
       });
     });
 
     describe('when itemSorter=`name`', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase('name');
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase('name');
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Area-amt : 2400', 'Area-pv : 9800', 'Area-uv : 200']);
       });
     });
 
     describe('when itemSorter is a function', () => {
-      it('should render sorted payload', () => {
-        const { container } = renderTestCase(item => String(item.value));
-        showTooltip(container, barChartMouseHoverTooltipSelector);
-        expectTooltipPayload(container, 'Page D', ['Area-uv : 200', 'Area-amt : 2400', 'Area-pv : 9800']);
+      it('should render sorted payload', async () => {
+        const { container } = await renderTestCase(item => String(item.value));
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
+        await expectTooltipPayload(container, 'Page D', ['Area-uv : 200', 'Area-amt : 2400', 'Area-pv : 9800']);
       });
 
-      it('should call the function once for every payload item, and pass the item as an argument', () => {
+      it('should call the function once for every payload item, and pass the item as an argument', async () => {
         const spy = vi.fn();
-        const { container } = renderTestCase(spy);
+        const { container } = await renderTestCase(spy);
         expect(spy).toHaveBeenCalledTimes(0);
-        showTooltip(container, barChartMouseHoverTooltipSelector);
+        await showTooltip(container, barChartMouseHoverTooltipSelector);
         expect(spy).toHaveBeenCalledTimes(3);
         expect(spy).toHaveBeenNthCalledWith(1, {
           color: '#3182bd',
