@@ -1,4 +1,5 @@
 import React from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 import { describe, it, expect } from 'vitest';
@@ -37,7 +38,8 @@ describe('TooltipBoundingBox', () => {
   };
   it('should render children when active prop is true', async () => {
     const screen = await render(<TooltipBoundingBox {...defaultProps} />);
-    await expect(screen.getByText('Hello world!')).toMatchScreenshot();
+    await expect.element(screen.getByText('Hello world!')).toBeVisible();
+    await takeSnapshot();
   });
 
   it('should hide children when active prop is false', async () => {

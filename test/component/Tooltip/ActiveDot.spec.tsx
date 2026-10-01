@@ -1,4 +1,5 @@
 import React from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -26,7 +27,6 @@ import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRec
 import { ActiveDotProps } from '../../../src/util/types';
 import { assertNotNull } from '../../helper/assertNotNull';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
-import { expectScreenshot } from '../../helper/browser/screenshot';
 
 const commonChartProps = {
   width: 400,
@@ -60,7 +60,7 @@ describe('ActiveDot', () => {
       assertNotNull(circle);
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly
@@ -178,7 +178,7 @@ describe('ActiveDot', () => {
       assertNotNull(circle);
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly
@@ -326,7 +326,7 @@ describe('ActiveDot', () => {
       assertNotNull(circle);
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly

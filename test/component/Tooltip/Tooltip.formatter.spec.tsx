@@ -8,7 +8,7 @@ import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRec
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/issues/5658', () => {
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
 
       await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     it('should select payload', async () => {
@@ -124,7 +124,7 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
 
       await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     it('should select payload', async () => {

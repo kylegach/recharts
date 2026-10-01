@@ -1,4 +1,5 @@
 import React, { ComponentType, ReactNode } from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -64,7 +65,7 @@ import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { selectChartViewBox } from '../../../src/state/selectors/selectChartOffsetInternal';
 import { assertNotNull } from '../../helper/assertNotNull';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
-import { expectScreenshot, expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 type TooltipSyncTestCase = {
   // For identifying which test is running
@@ -346,8 +347,8 @@ describe('Tooltip synchronization', () => {
         await showTooltip(wrapperOne, mouseHoverSelector, debug);
 
         // the second chart shows the synchronized tooltip
-        await expectTooltipScreenshot(wrapperOne);
-        await expectTooltipScreenshot(wrapperTwo);
+        await snapshotTooltip(wrapperOne);
+        await snapshotTooltip(wrapperTwo);
       });
 
       test(`${name} should put the syncId into redux state`, async () => {
@@ -411,8 +412,8 @@ describe('Tooltip synchronization', () => {
       await expectTooltipNotVisible(wrapperB);
 
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
 
       await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
 
@@ -528,9 +529,9 @@ describe('Tooltip synchronization', () => {
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       // Chart A shows tooltip at the hovered point
-      await expectTooltipScreenshot(wrapperA);
+      await snapshotTooltip(wrapperA);
       // Chart B should sync and show tooltip — NOT be cleared by Chart C's counter-emission
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperB);
       // Chart C has no 'Day 3' entry, so its tooltip should be hidden
       assertNotNull(wrapperC);
       await expectTooltipNotVisible(wrapperC);
@@ -798,10 +799,10 @@ describe('Tooltip synchronization', () => {
       await expectTooltipNotVisible(wrapperB);
 
       await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
-      await expectScreenshot(wrapperA);
-      await expectScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
+      await takeSnapshot();
+      await takeSnapshot();
 
       await hideTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
@@ -849,23 +850,23 @@ describe('Tooltip synchronization', () => {
 
       expect(spyA).toHaveBeenLastCalledWith('2');
       expect(spyB).toHaveBeenLastCalledWith('2');
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
     });
 
     it('should continue showing both tooltips after mouse leaves the chart A - because of the active prop!', async () => {
       const { wrapperA, wrapperB, debug } = await renderTestCase();
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
       await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
     });
 
     it('should show both tooltips when hovering over chart B', async () => {
       const { wrapperA, wrapperB, debug } = await renderTestCase();
       await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
     });
 
     it('should hide both tooltips after mouse leaves the chart B - because it has no active prop', async () => {
@@ -886,8 +887,8 @@ describe('Tooltip synchronization', () => {
         { clientX: 100, clientY: 100 },
         debug,
       );
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
     });
 
     it('after switching charts from A to B, it should follow the mouse and update coordinates on both charts', async () => {
@@ -903,8 +904,8 @@ describe('Tooltip synchronization', () => {
 
       expect(spyA).toHaveBeenLastCalledWith('1');
       expect(spyB).toHaveBeenLastCalledWith('1');
-      await expectTooltipScreenshot(wrapperA);
-      await expectTooltipScreenshot(wrapperB);
+      await snapshotTooltip(wrapperA);
+      await snapshotTooltip(wrapperB);
     });
 
     it('should clear synchronisation state after switching from A to B', async () => {
@@ -1058,7 +1059,7 @@ describe('brush synchronization', () => {
 
     await expect.element(page.elementLocator(firstChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
     await expect.element(page.elementLocator(secondChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
-    await expectScreenshot(container);
+    await takeSnapshot();
   });
 });
 
@@ -1092,7 +1093,7 @@ describe('Cursor synchronization', () => {
 
       await showTooltip(container, mouseHoverSelector, debug);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 });

@@ -37,7 +37,7 @@ import { selectTooltipPayload, selectTooltipPayloadConfigurations } from '../../
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { noop } from '../../../src/util/DataUtils';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 describe('itemSorter in ComposedChart', () => {
   beforeEach(() => {
@@ -68,7 +68,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select tooltipPayloadConfigurations', async () => {
@@ -447,7 +447,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -455,7 +455,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -463,7 +463,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -471,7 +471,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -607,7 +607,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -722,7 +722,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -730,7 +730,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -738,7 +738,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -746,7 +746,7 @@ describe('itemSorter in ComposedChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -882,7 +882,7 @@ describe('itemSorter in PieChart', () => {
     it('should render only one item in the Tooltip so there is nothing to sort', async () => {
       const { container } = await renderTestCase(undefined);
       await showTooltip(container, pieChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     it('should select payload with only one item so there is nothing to sort', async () => {
@@ -940,7 +940,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -1014,7 +1014,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1022,7 +1022,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1030,7 +1030,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1038,7 +1038,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -1133,7 +1133,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -1207,7 +1207,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1215,7 +1215,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1223,7 +1223,7 @@ describe('itemSorter in RadarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, radarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
   });
@@ -1256,7 +1256,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -1375,7 +1375,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1383,7 +1383,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1391,7 +1391,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1399,7 +1399,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -1557,7 +1557,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -1676,7 +1676,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1684,7 +1684,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1692,7 +1692,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1700,7 +1700,7 @@ describe('itemSorter in RadialBarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, radialBarChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -1866,7 +1866,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -1940,7 +1940,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1948,7 +1948,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1956,7 +1956,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1964,7 +1964,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -2059,7 +2059,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -2133,7 +2133,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2141,7 +2141,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2149,7 +2149,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2157,7 +2157,7 @@ describe('itemSorter in stacked BarChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -2258,7 +2258,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render payload sorted by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -2332,7 +2332,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2340,7 +2340,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2348,7 +2348,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2356,7 +2356,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {
@@ -2451,7 +2451,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render payload by name', async () => {
         const { container } = await renderTestCase(undefined);
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should select payload sorted by name', async () => {
@@ -2525,7 +2525,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('dataKey');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2533,7 +2533,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('value');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2541,7 +2541,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase('name');
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -2549,7 +2549,7 @@ describe('itemSorter in stacked AreaChart', () => {
       it('should render sorted payload', async () => {
         const { container } = await renderTestCase(item => String(item.value));
         await showTooltip(container, barChartMouseHoverTooltipSelector);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should call the function once for every payload item, and pass the item as an argument', async () => {

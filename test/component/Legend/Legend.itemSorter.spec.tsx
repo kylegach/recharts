@@ -17,7 +17,7 @@ import { createSelectorTestCase } from '../../helper/browser/createSelectorTestC
 import { flushPendingFrames } from '../../helper/browser/act';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { assertNotNull } from '../../helper/assertNotNull';
-import { expectLegendScreenshot } from '../../helper/browser/screenshot';
+import { snapshotLegend } from '../../helper/browser/snapshot';
 
 describe('Legend.itemSorter', () => {
   describe('with default content', () => {
@@ -30,7 +30,7 @@ describe('Legend.itemSorter', () => {
         </LineChart>,
       );
 
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     test('sorts legend items when itemSorter=dataKey', async () => {
@@ -42,7 +42,7 @@ describe('Legend.itemSorter', () => {
         </LineChart>,
       );
 
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -290,7 +290,7 @@ describe('Legend.itemSorter', () => {
       it('should render all items sorted by dataKey', async () => {
         const { container } = await renderTestCase();
 
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -300,11 +300,11 @@ describe('Legend.itemSorter', () => {
 
         await getByText('A', { exact: true }).click();
         await flushPendingFrames();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
 
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
 
       it('should show the clicked item again and keep the order', async () => {
@@ -313,15 +313,15 @@ describe('Legend.itemSorter', () => {
         await getByText('A', { exact: true }).click();
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
 
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
 
         await getByText('A', { exact: true }).click();
         await flushPendingFrames();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
   });

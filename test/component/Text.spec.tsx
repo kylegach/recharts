@@ -1,10 +1,10 @@
 import { LocatorSelectors } from 'vitest/browser';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { render } from 'vitest-browser-react';
 import React from 'react';
 import { vi } from 'vitest';
 import { Surface, Text } from '../../src';
 import { mockGetBoundingClientRect } from '../helper/mockGetBoundingClientRect';
-import { expectScreenshot } from '../helper/browser/screenshot';
 import { getWordsByLines } from '../../src/component/Text';
 import * as DOMUtils from '../../src/util/DOMUtils';
 
@@ -43,7 +43,7 @@ describe('<Text />', () => {
   });
 
   test('renders number children', async () => {
-    const screen = await render(
+    await render(
       <Surface width={300} height={300}>
         <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {12345}
@@ -51,11 +51,11 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   test('renders boolean children', async () => {
-    const screen = await render(
+    await render(
       <Surface width={300} height={300}>
         <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {true}
@@ -63,11 +63,11 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   test('renders the string "NaN" when children is NaN', async () => {
-    const screen = await render(
+    await render(
       <Surface width={300} height={300}>
         <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {NaN}
@@ -75,7 +75,7 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   test.each([null, undefined] as const)('Renders nothing when children is %s', async (children: null | undefined) => {
@@ -91,7 +91,7 @@ describe('<Text />', () => {
   });
 
   test('renders object object when children are React elements', async () => {
-    const screen = await render(
+    await render(
       <Surface width={300} height={300}>
         {/* @ts-expect-error typescript is correct here, Text doesn't accept ReactElement, the test is to demonstrate that */}
         <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
@@ -105,7 +105,7 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   test('Wraps long text if not enough width', async () => {

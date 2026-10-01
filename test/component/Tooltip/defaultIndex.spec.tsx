@@ -9,7 +9,7 @@ import { showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector, pieChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 describe('defaultIndex', () => {
   describe('in BarChart', () => {
@@ -79,7 +79,7 @@ describe('defaultIndex', () => {
 
     it('should render tooltip before user interaction', async () => {
       const { container } = await renderTestCase();
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 
@@ -128,7 +128,7 @@ describe('defaultIndex', () => {
 
     it('should render tooltip before user interaction', async () => {
       const { container } = await renderTestCase();
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 

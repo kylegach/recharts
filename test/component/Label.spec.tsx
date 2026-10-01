@@ -1,4 +1,5 @@
 import React from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import {
   DefaultZIndexes,
@@ -13,7 +14,6 @@ import {
 } from '../../src';
 import { PolarViewBoxRequired } from '../../src/util/types';
 import { rechartsTestRender } from '../helper/browser/createSelectorTestCase';
-import { expectScreenshot } from '../helper/browser/screenshot';
 
 const data = [
   { name: 'Page A', uv: 400, pv: 2400, amt: 2400 },
@@ -36,12 +36,12 @@ describe('<Label />', () => {
   };
 
   it('Render polar labels (position="center")', async () => {
-    const screen = await rechartsTestRender(
+    await rechartsTestRender(
       <Surface height={300} width={300}>
         <Label viewBox={polarViewBox} value="text" position="center" />
       </Surface>,
     );
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   it('Render polar labels (position="outside")', async () => {
@@ -97,12 +97,12 @@ describe('<Label />', () => {
   };
 
   it('Render cartesian labels (position="center")', async () => {
-    const screen = await rechartsTestRender(
+    await rechartsTestRender(
       <Surface height={300} width={300}>
         <Label viewBox={cartesianViewBox} value="text" position="center" />
       </Surface>,
     );
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   describe('content/value/children variants', () => {
@@ -135,15 +135,15 @@ describe('<Label />', () => {
 
       describe('string', () => {
         it('should render label when given children prop', async () => {
-          const screen = await renderLabelWithChildren('label from children');
+          await renderLabelWithChildren('label from children');
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given value prop', async () => {
-          const screen = await renderLabelWithValue('label from value');
+          await renderLabelWithValue('label from value');
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should not render label at all when given content prop', async () => {
@@ -158,15 +158,15 @@ describe('<Label />', () => {
 
       describe('number', () => {
         it('should render label when given children prop', async () => {
-          const screen = await renderLabelWithChildren(12345);
+          await renderLabelWithChildren(12345);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given value prop', async () => {
-          const screen = await renderLabelWithValue(67890);
+          await renderLabelWithValue(67890);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should not render label at all when given content prop', async () => {
@@ -181,15 +181,15 @@ describe('<Label />', () => {
 
       describe('boolean', () => {
         it('should render label when given children prop', async () => {
-          const screen = await renderLabelWithChildren(true);
+          await renderLabelWithChildren(true);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given value prop', async () => {
-          const screen = await renderLabelWithValue(false);
+          await renderLabelWithValue(false);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should not render label at all when given content prop', async () => {
@@ -347,17 +347,17 @@ describe('<Label />', () => {
 
         it('should render label when given children prop', async () => {
           // @ts-expect-error typescript is correct here, Label does not allow React element as value, and it renders gibberish
-          const screen = await renderLabelWithChildren(element);
+          await renderLabelWithChildren(element);
 
           // this is not great - even though the type says it allows this, in practice it's pointless
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given value prop', async () => {
           // @ts-expect-error typescript is correct here, Label does not allow React element as value, and it renders gibberish
-          const screen = await renderLabelWithValue(element);
+          await renderLabelWithValue(element);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given content prop', async () => {
@@ -372,16 +372,16 @@ describe('<Label />', () => {
 
         it('should render label when given children prop', async () => {
           // @ts-expect-error typescript is correct here, Label does not allow React element as value, and it renders gibberish
-          const screen = await renderLabelWithChildren(array);
+          await renderLabelWithChildren(array);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given value prop', async () => {
           // @ts-expect-error typescript says that array of strings is not allowed as value, and indeed it calls the standard .toString() on it and renders that
-          const screen = await renderLabelWithValue(array);
+          await renderLabelWithValue(array);
 
-          await expectScreenshot(screen.container);
+          await takeSnapshot();
         });
 
         it('should render label when given content prop', async () => {
@@ -395,7 +395,7 @@ describe('<Label />', () => {
 
     describe('when both children + value are provided', () => {
       it('should prefer children over value', async () => {
-        const screen = await rechartsTestRender(
+        await rechartsTestRender(
           <Surface height={300} width={300}>
             <Label viewBox={cartesianViewBox} position="center" value="label from value">
               label from children
@@ -403,7 +403,7 @@ describe('<Label />', () => {
           </Surface>,
         );
 
-        await expectScreenshot(screen.container);
+        await takeSnapshot();
       });
     });
 
@@ -532,17 +532,17 @@ describe('<Label />', () => {
       </LineChart>,
     );
     expect(screen.getByCSS('.recharts-line .recharts-line-curve').elements()).toHaveLength(1);
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   it('Renders label by label props with animation disabled', async () => {
-    const screen = await rechartsTestRender(
+    await rechartsTestRender(
       <LineChart width={400} height={400} data={data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
         <Line type="monotone" dataKey="uv" stroke="#ff7300" label={{ position: 'center' }} isAnimationActive={false} />
       </LineChart>,
     );
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   it('Renders label by label props with animation completed', async () => {
@@ -554,7 +554,7 @@ describe('<Label />', () => {
 
     await screen.animationManager.completeAnimation();
 
-    await expectScreenshot(screen.container);
+    await takeSnapshot();
   });
 
   describe('custom label on an axis', () => {

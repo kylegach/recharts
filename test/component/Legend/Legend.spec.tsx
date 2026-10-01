@@ -1,4 +1,5 @@
 import React, { ComponentType, CSSProperties, ReactNode, useState } from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { describe, expect, it, Mock, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -42,7 +43,7 @@ import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { HorizontalAlignmentType, VerticalAlignmentType } from '../../../src/component/DefaultLegendContent';
 import { useChartHeight, useChartWidth, useOffsetInternal, useViewBox } from '../../../src/context/chartLayoutContext';
 import { useClipPathId } from '../../../src/container/ClipPathProvider';
-import { expectLegendScreenshot, expectScreenshot } from '../../helper/browser/screenshot';
+import { snapshotLegend } from '../../helper/browser/snapshot';
 
 type LegendTypeTestCases = ReadonlyArray<{
   legendType: LegendType;
@@ -51,7 +52,7 @@ type LegendTypeTestCases = ReadonlyArray<{
 
 /**
  * The element that each legendType renders as its legend icon.
- * Screenshots check the shape and the color of the icon.
+ * Snapshots check the shape and the color of the icon.
  */
 const legendTypeSymbols: LegendTypeTestCases = [
   { legendType: 'circle', selector: 'path.recharts-symbols' },
@@ -112,7 +113,7 @@ function testChartLayoutContext(
 }
 
 /**
- * Checks the element that the first legend item renders as its icon. A screenshot checks how it looks.
+ * Checks the element that the first legend item renders as its icon. A snapshot checks how it looks.
  */
 function assertLegendIcon(container: HTMLElement, selector: string) {
   const [legendItem] = assertHasLegend(container);
@@ -185,7 +186,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should inject extra sneaky props - but none of them are actual HTML props so they get ignored by React', async () => {
@@ -218,7 +219,7 @@ describe('<Legend />', () => {
       );
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should pass parameters to the function', async () => {
@@ -333,7 +334,7 @@ describe('<Legend />', () => {
     });
 
     it('should set absolute position based on position="top"', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="top" />
           <Line dataKey="value" />
@@ -357,24 +358,24 @@ describe('<Legend />', () => {
       // CSS translate for vAnchor='end' is -100%.
       // So top: 0, left: 250, transform: translate(-50%, -100%)
       // This places it *above* the chart. Which might be clipped.
-      // The screenshot shows where the legend ends up.
+      // The snapshot shows where the legend ends up.
       // Expected inline style: top: 25px, left: 250px, transform: translate(-50%, -100%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should set absolute position offset by margin', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 0, bottom: 11, left: 30 }}>
           <Legend position="top" />
           <Line dataKey="value" />
         </LineChart>,
       );
       // Expected inline style: top: 23px, left: 265px, transform: translate(-50%, -100%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should set absolute position based on position="insideBottomRight"', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="insideBottomRight" />
           <Line dataKey="value" />
@@ -387,11 +388,11 @@ describe('<Legend />', () => {
       // translate(-100%, -100%)
       // default margins are 5px
       // Expected inline style: top: 495px, left: 495px, transform: translate(-100%, -100%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should keep insideBottomRight within the plot area after margins and axes', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 7, bottom: 11, left: 30 }}>
           <XAxis />
           <YAxis />
@@ -400,11 +401,11 @@ describe('<Legend />', () => {
         </LineChart>,
       );
       // Expected inline style: top: 459px, left: 493px, transform: translate(-100%, -100%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should apply offset', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position="left" offset={10} />
           <Line dataKey="value" />
@@ -416,11 +417,11 @@ describe('<Legend />', () => {
       // y = 250
       // hAnchor = end (-100%), vAnchor = middle (-50%)
       // Expected inline style: top: 250px, left: 105px, transform: translate(-100%, -50%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should position outside legends beyond the axes', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 0, bottom: 11, left: 30 }}>
           <XAxis />
           <YAxis />
@@ -429,11 +430,11 @@ describe('<Legend />', () => {
         </LineChart>,
       );
       // Expected inline style: top: 469px, left: 265px, transform: translate(-50%, 0px)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should default left and top positions to vertical and horizontal layouts', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <>
           <LineChart width={500} height={500} data={numericalData}>
             <Legend position="left" />
@@ -449,11 +450,11 @@ describe('<Legend />', () => {
       );
 
       // The left legend stacks its items, and the top legend puts them in one row
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should allow coordinate object position', async () => {
-      const { container } = await rechartsTestRender(
+      await rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
           <Legend position={{ x: 100, y: 100 }} />
           <Line dataKey="value" />
@@ -462,7 +463,7 @@ describe('<Legend />', () => {
       // x: 100, y: 100
       // default anchors are end/end for object position in useCartesianPosition
       // Expected inline style: top: 105px, left: 105px, transform: translate(-100%, -100%)
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 
@@ -480,7 +481,7 @@ describe('<Legend />', () => {
       );
 
       expect(container.querySelectorAll('.recharts-default-legend')).toHaveLength(0);
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -494,7 +495,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     test('Does not render `strokeDasharray` (if not present) when iconType is not set to `plainline`', async () => {
@@ -506,7 +507,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     test('Renders name value of siblings when dataKey is a function', async () => {
@@ -517,7 +518,7 @@ describe('<Legend />', () => {
           <Line dataKey={row => row.color} name="My Other Line Data" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     test('Legend defaults are read correctly', async () => {
@@ -531,7 +532,7 @@ describe('<Legend />', () => {
       const legendItem = container.getElementsByClassName('legend-item-0')[0];
       const surface = legendItem.getElementsByClassName('recharts-surface')[0];
       await expect.element(page.elementLocator(surface)).toHaveAttribute('aria-label', 'My Line Data legend icon');
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     test('aria-label uses the raw entry value even when formatter returns a React element', async () => {
@@ -582,7 +583,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Line should default to line
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render a legend item even if the dataKey does not match anything from the data', async () => {
@@ -592,7 +593,7 @@ describe('<Legend />', () => {
           <Line dataKey="unknown" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should change color and className of hidden Line', async () => {
@@ -612,7 +613,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Line should default to line
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should have a default inactive Line legend color', async () => {
@@ -632,7 +633,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Line should default to rect
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render one empty legend item if Line has no dataKey', async () => {
@@ -643,7 +644,7 @@ describe('<Legend />', () => {
           <Line />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should set legend item from `name` prop on Line, and update it after rerender', async () => {
@@ -653,7 +654,7 @@ describe('<Legend />', () => {
           <Line dataKey="percent" name="%" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <LineChart width={500} height={500} data={numericalData}>
@@ -661,7 +662,7 @@ describe('<Legend />', () => {
           <Line dataKey="percent" name="Percent" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not implicitly read `name` and `fill` properties from the data array', async () => {
@@ -671,7 +672,7 @@ describe('<Legend />', () => {
           <Line dataKey="value" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should disappear after Line element is removed', async () => {
@@ -682,7 +683,7 @@ describe('<Legend />', () => {
           <Line dataKey="value" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <LineChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -690,7 +691,7 @@ describe('<Legend />', () => {
           <Line dataKey="value" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if Line data changes', async () => {
@@ -700,7 +701,7 @@ describe('<Legend />', () => {
           <Line dataKey="value" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <LineChart width={500} height={500} data={numericalData}>
@@ -708,7 +709,7 @@ describe('<Legend />', () => {
           <Line dataKey="percent" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should pass parameters to the Component', async () => {
@@ -823,7 +824,7 @@ describe('<Legend />', () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render legend labels with same text color', async () => {
@@ -834,7 +835,7 @@ describe('<Legend />', () => {
           <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not forward ID and className to the DOM', async () => {
@@ -859,7 +860,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('legendType symbols', () => {
@@ -873,7 +874,7 @@ describe('<Legend />', () => {
             </LineChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -886,7 +887,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
       assertLegendIcon(container, getLegendTypeSelector('circle'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -906,7 +907,7 @@ describe('<Legend />', () => {
           <Line data={categoricalData} type="monotone" dataKey="uv" stroke="#82ca9d" />
         </LineChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -933,7 +934,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Bar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not render items with a type of `none`', async () => {
@@ -944,7 +945,7 @@ describe('<Legend />', () => {
           <Bar dataKey="color" legendType="none" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should push away Bars to make space', async () => {
@@ -966,7 +967,7 @@ describe('<Legend />', () => {
       expect(yAxisRangeSpy).toHaveBeenLastCalledWith([485, 5]);
       expect(yAxisRangeSpy).toHaveBeenCalledTimes(2);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await rerender(
         <BarChart width={500} height={500} data={numericalData}>
@@ -980,7 +981,7 @@ describe('<Legend />', () => {
       expect(yAxisRangeSpy).toHaveBeenLastCalledWith([495, 5]);
       expect(yAxisRangeSpy).toHaveBeenCalledTimes(3);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should render a legend item even if the dataKey does not match anything from the data', async () => {
@@ -990,7 +991,7 @@ describe('<Legend />', () => {
           <Bar dataKey="unknown" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should change color and className of hidden Bar', async () => {
@@ -1010,7 +1011,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Bar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should have a default inactive Bar legend color', async () => {
@@ -1030,7 +1031,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Bar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render one empty legend item if Bar has no dataKey', async () => {
@@ -1040,7 +1041,7 @@ describe('<Legend />', () => {
           <Bar />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should set legend item from `name` prop on Bar, and update it after rerender', async () => {
@@ -1050,7 +1051,7 @@ describe('<Legend />', () => {
           <Bar dataKey="percent" name="%" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <BarChart width={500} height={500} data={numericalData}>
@@ -1058,7 +1059,7 @@ describe('<Legend />', () => {
           <Bar dataKey="percent" name="Percent" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not implicitly read `name` and `fill` properties from the data array', async () => {
@@ -1068,7 +1069,7 @@ describe('<Legend />', () => {
           <Bar dataKey="color" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
       await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
@@ -1087,7 +1088,7 @@ describe('<Legend />', () => {
           <Bar dataKey="value" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <BarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -1095,7 +1096,7 @@ describe('<Legend />', () => {
           <Bar dataKey="value" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if Bar data changes', async () => {
@@ -1105,7 +1106,7 @@ describe('<Legend />', () => {
           <Bar dataKey="value" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <BarChart width={500} height={500} data={numericalData}>
@@ -1113,7 +1114,7 @@ describe('<Legend />', () => {
           <Bar dataKey="percent" />
         </BarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('wrapper props', () => {
@@ -1128,7 +1129,7 @@ describe('<Legend />', () => {
         assertNotNull(wrapper);
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
         await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-        await expectScreenshot(container);
+        await takeSnapshot();
       });
 
       it('should change width and height based on chart width and height and margin and bounding box size', async () => {
@@ -1146,7 +1147,7 @@ describe('<Legend />', () => {
         assertNotNull(wrapper);
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
         await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-        await expectScreenshot(container);
+        await takeSnapshot();
       });
 
       it('should change width and height based on explicit Legend props', async () => {
@@ -1160,7 +1161,7 @@ describe('<Legend />', () => {
         assertNotNull(wrapper);
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
         await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-        await expectScreenshot(container);
+        await takeSnapshot();
       });
 
       it('should append wrapperStyle', async () => {
@@ -1174,7 +1175,7 @@ describe('<Legend />', () => {
         assertNotNull(wrapper);
         expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
         await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-        await expectScreenshot(container);
+        await takeSnapshot();
       });
 
       const wrapperStyleTestCases: ReadonlyArray<{
@@ -1235,7 +1236,7 @@ describe('<Legend />', () => {
           assertNotNull(wrapper);
           expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
           await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-          await expectScreenshot(container);
+          await takeSnapshot();
         },
       );
 
@@ -1372,7 +1373,7 @@ describe('<Legend />', () => {
           assertNotNull(wrapper);
           expect.soft(wrapper.getAttributeNames()).toEqual(['class', 'style']);
           await expect.element(page.elementLocator(wrapper)).toHaveAttribute('class', 'recharts-legend-wrapper');
-          await expectScreenshot(container);
+          await takeSnapshot();
           /*
            * Because the bounding box is set as a class property instead of a state,
            * reading the legend width and height does not trigger re-render!
@@ -1393,7 +1394,7 @@ describe('<Legend />', () => {
           assertNotNull(wrapper2);
           expect.soft(wrapper2.getAttributeNames()).toEqual(['class', 'style']);
           await expect.element(page.elementLocator(wrapper2)).toHaveAttribute('class', 'recharts-legend-wrapper');
-          await expectScreenshot(container);
+          await takeSnapshot();
         },
       );
     });
@@ -1559,7 +1560,7 @@ describe('<Legend />', () => {
             </BarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -1571,7 +1572,7 @@ describe('<Legend />', () => {
           </BarChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
   });
@@ -1589,7 +1590,7 @@ describe('<Legend />', () => {
 
       it('should render one legend item for each Area', async () => {
         const { container } = await renderTestCase();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
 
       it('should add class and style attributes to each element', async () => {
@@ -1605,13 +1606,13 @@ describe('<Legend />', () => {
         await expect
           .element(page.elementLocator(legendItems[1]))
           .toHaveAttribute('class', 'recharts-legend-item legend-item-1');
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
 
       it('should render Line symbols and colors in absence of explicit legendType', async () => {
         const { container } = await renderTestCase();
         assertLegendIcon(container, getLegendTypeSelector('line'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -1622,7 +1623,7 @@ describe('<Legend />', () => {
           <Area dataKey="unknown" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should change color and className of hidden Area', async () => {
@@ -1642,7 +1643,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Area should default to line
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should have a default inactive Area legend color', async () => {
@@ -1662,7 +1663,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Area should default to line
       assertLegendIcon(container, getLegendTypeSelector('line'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render one empty legend item if Area has no dataKey', async () => {
@@ -1673,7 +1674,7 @@ describe('<Legend />', () => {
           <Area />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('with `name` prop on Area', () => {
@@ -1687,7 +1688,7 @@ describe('<Legend />', () => {
 
       it('should set legend item from `name` prop on Area, and update it after rerender', async () => {
         const { container, rerender } = await renderTestCase();
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
         await rerender(({ children }) => (
           <AreaChart width={500} height={500} data={numericalData}>
             <Legend />
@@ -1695,7 +1696,7 @@ describe('<Legend />', () => {
             {children}
           </AreaChart>
         ));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
 
       it('should select legend payload', async () => {
@@ -1744,7 +1745,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
       await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
@@ -1763,7 +1764,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <AreaChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -1771,7 +1772,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if Area data changes', async () => {
@@ -1781,7 +1782,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <AreaChart width={500} height={500} data={numericalData}>
@@ -1789,7 +1790,7 @@ describe('<Legend />', () => {
           <Area dataKey="percent" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('legendType symbols', () => {
@@ -1804,7 +1805,7 @@ describe('<Legend />', () => {
               </AreaChart>,
             );
             assertLegendIcon(container, selector);
-            await expectLegendScreenshot(container);
+            await snapshotLegend(container);
           },
         );
       });
@@ -1820,7 +1821,7 @@ describe('<Legend />', () => {
               </AreaChart>,
             );
             assertLegendIcon(container, selector);
-            await expectLegendScreenshot(container);
+            await snapshotLegend(container);
           },
         );
       });
@@ -1836,7 +1837,7 @@ describe('<Legend />', () => {
               </AreaChart>,
             );
             assertLegendIcon(container, selector);
-            await expectLegendScreenshot(container);
+            await snapshotLegend(container);
           },
         );
       });
@@ -1852,7 +1853,7 @@ describe('<Legend />', () => {
               </AreaChart>,
             );
             assertLegendIcon(container, selector);
-            await expectLegendScreenshot(container);
+            await snapshotLegend(container);
           },
         );
       });
@@ -1868,7 +1869,7 @@ describe('<Legend />', () => {
               </AreaChart>,
             );
             assertLegendIcon(container, selector);
-            await expectLegendScreenshot(container);
+            await snapshotLegend(container);
           },
         );
       });
@@ -1881,7 +1882,7 @@ describe('<Legend />', () => {
           </AreaChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -1892,7 +1893,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -1904,7 +1905,7 @@ describe('<Legend />', () => {
           <Area dataKey="value" data={numericalData} />
         </AreaChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -1923,7 +1924,7 @@ describe('<Legend />', () => {
           <Line dataKey="bad but invisible" name="Wrong 3" />
         </ComposedChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
       await expect.element(getByText('wrong but invisible', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('unknown but invisible', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('bad but invisible', { exact: true })).not.toBeInTheDocument();
@@ -1948,7 +1949,7 @@ describe('<Legend />', () => {
           <Scatter dataKey="scatter datakey" />
         </ComposedChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not implicitly read `name` and `fill` properties from the data array', async () => {
@@ -1960,7 +1961,7 @@ describe('<Legend />', () => {
           <Line dataKey="color" />
         </ComposedChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
       await expect.element(getByText('name1', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name2', { exact: true })).not.toBeInTheDocument();
       await expect.element(getByText('name3', { exact: true })).not.toBeInTheDocument();
@@ -1982,7 +1983,7 @@ describe('<Legend />', () => {
             </ComposedChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -1994,7 +1995,7 @@ describe('<Legend />', () => {
           </ComposedChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -2009,7 +2010,7 @@ describe('<Legend />', () => {
             </ComposedChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -2021,7 +2022,7 @@ describe('<Legend />', () => {
           </ComposedChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -2036,7 +2037,7 @@ describe('<Legend />', () => {
             </ComposedChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -2048,7 +2049,7 @@ describe('<Legend />', () => {
           </ComposedChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
   });
@@ -2061,7 +2062,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render a legend item even if the dataKey does not match anything from the data', async () => {
@@ -2073,7 +2074,7 @@ describe('<Legend />', () => {
       );
 
       // showing the dataKey is better than empty string I imagine - but without the user providing a nameKey, it's the best we can do
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should implicitly use special `name` and `fill` properties from data as legend labels and colors', async () => {
@@ -2125,7 +2126,7 @@ describe('<Legend />', () => {
               <Pie data={numericalData} dataKey="percent" nameKey="value" />
             </PieChart>,
           );
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2138,7 +2139,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <PieChart width={500} height={500}>
@@ -2147,7 +2148,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should disappear after Pie itself is removed', async () => {
@@ -2158,7 +2159,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <PieChart width={500} height={500}>
@@ -2166,7 +2167,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if Pie data changes', async () => {
@@ -2176,7 +2177,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <PieChart width={500} height={500}>
@@ -2184,7 +2185,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData2} dataKey="value" nameKey="title" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if nameKey changes', async () => {
@@ -2194,7 +2195,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData} dataKey="percent" nameKey="value" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <PieChart width={500} height={500}>
@@ -2202,7 +2203,7 @@ describe('<Legend />', () => {
           <Pie data={numericalData} dataKey="percent" nameKey="percent" />
         </PieChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('legendType symbols', () => {
@@ -2216,7 +2217,7 @@ describe('<Legend />', () => {
             </PieChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -2228,7 +2229,7 @@ describe('<Legend />', () => {
           </PieChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
   });
@@ -2256,7 +2257,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Radar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render a legend item even if the dataKey does not match anything from the data', async () => {
@@ -2266,7 +2267,7 @@ describe('<Legend />', () => {
           <Radar dataKey="unknown" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should change color and className of hidden Radar', async () => {
@@ -2286,7 +2287,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Radar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should have a default inactive Radar legend color', async () => {
@@ -2306,7 +2307,7 @@ describe('<Legend />', () => {
 
       // in absence of explicit `legendType`, Radar should default to rect
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render one empty legend item if Radar has no dataKey', async () => {
@@ -2316,7 +2317,7 @@ describe('<Legend />', () => {
           <Radar />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should set legend item from `name` prop on Radar, and update it after rerender', async () => {
@@ -2326,7 +2327,7 @@ describe('<Legend />', () => {
           <Radar dataKey="percent" name="%" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadarChart width={500} height={500} data={numericalData}>
@@ -2334,7 +2335,7 @@ describe('<Legend />', () => {
           <Radar dataKey="percent" name="Percent" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not implicitly read `name` and `fill` properties from the data array', async () => {
@@ -2344,7 +2345,7 @@ describe('<Legend />', () => {
           <Radar dataKey="value" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should disappear after Radar element is removed', async () => {
@@ -2355,7 +2356,7 @@ describe('<Legend />', () => {
           <Radar dataKey="value" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -2363,7 +2364,7 @@ describe('<Legend />', () => {
           <Radar dataKey="value" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should update legend if Radar data changes', async () => {
@@ -2373,7 +2374,7 @@ describe('<Legend />', () => {
           <Radar dataKey="value" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadarChart width={500} height={500} data={numericalData}>
@@ -2381,7 +2382,7 @@ describe('<Legend />', () => {
           <Radar dataKey="percent" />
         </RadarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('legendType symbols without color', () => {
@@ -2395,7 +2396,7 @@ describe('<Legend />', () => {
             </RadarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -2407,7 +2408,7 @@ describe('<Legend />', () => {
           </RadarChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -2422,7 +2423,7 @@ describe('<Legend />', () => {
             </RadarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2438,7 +2439,7 @@ describe('<Legend />', () => {
             </RadarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2454,7 +2455,7 @@ describe('<Legend />', () => {
             </RadarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2470,7 +2471,7 @@ describe('<Legend />', () => {
             </RadarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2485,7 +2486,7 @@ describe('<Legend />', () => {
         </RadialBarChart>,
       );
       assertLegendIcon(container, getLegendTypeSelector('rect'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should render a legend item even if the dataKey does not match anything from the data', async () => {
@@ -2495,7 +2496,7 @@ describe('<Legend />', () => {
           <RadialBar dataKey="unknown" />
         </RadialBarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should use special `name` and `fill` properties from data as legend labels and colors', async () => {
@@ -2538,7 +2539,7 @@ describe('<Legend />', () => {
           <RadialBar dataKey="value" />
         </RadialBarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadialBarChart width={500} height={500} data={numericalData}>
@@ -2546,7 +2547,7 @@ describe('<Legend />', () => {
           <RadialBar dataKey="value" />
         </RadialBarChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadialBarChart width={500} height={500}>
@@ -2564,7 +2565,7 @@ describe('<Legend />', () => {
         </RadialBarChart>,
       );
       // all these are empty because numericalData does not have .name property
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
 
       await rerender(
         <RadialBarChart width={500} height={500} data={dataWithSpecialNameAndFillProperties}>
@@ -2591,7 +2592,7 @@ describe('<Legend />', () => {
             </RadialBarChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2604,7 +2605,7 @@ describe('<Legend />', () => {
         </RadialBarChart>,
       );
       assertLegendIcon(container, getLegendTypeSelector('circle'));
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -2617,7 +2618,7 @@ describe('<Legend />', () => {
           <Scatter dataKey="value" />
         </ScatterChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     it('should not use `fill` from data for the legend fill', async () => {
@@ -2627,7 +2628,7 @@ describe('<Legend />', () => {
           <Scatter dataKey="value" />
         </ScatterChart>,
       );
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
 
     describe('legendType symbols', () => {
@@ -2641,7 +2642,7 @@ describe('<Legend />', () => {
             </ScatterChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
 
@@ -2653,7 +2654,7 @@ describe('<Legend />', () => {
           </ScatterChart>,
         );
         assertLegendIcon(container, getLegendTypeSelector('circle'));
-        await expectLegendScreenshot(container);
+        await snapshotLegend(container);
       });
     });
 
@@ -2668,7 +2669,7 @@ describe('<Legend />', () => {
             </ScatterChart>,
           );
           assertLegendIcon(container, selector);
-          await expectLegendScreenshot(container);
+          await snapshotLegend(container);
         },
       );
     });
@@ -2685,7 +2686,7 @@ describe('<Legend />', () => {
 
     it('should render legend', async () => {
       const { container } = await renderTestCase();
-      await expectLegendScreenshot(container);
+      await snapshotLegend(container);
     });
   });
 
@@ -2781,11 +2782,11 @@ describe('<Legend />', () => {
           </>
         );
       }
-      const { container } = await rechartsTestRender(<Example />);
+      await rechartsTestRender(<Example />);
 
       await expect.element(page.getByCSS('.recharts-wrapper .recharts-legend-wrapper')).not.toBeInTheDocument();
       // The legend has the margin from wrapperStyle, and none of the internal absolute position styles
-      await expectScreenshot(container);
+      await takeSnapshot();
       await expect
         .element(page.getByCSS('[data-testid="my-custom-portal-target"] > .recharts-legend-wrapper'))
         .toBeVisible();

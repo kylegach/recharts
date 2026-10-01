@@ -1,4 +1,5 @@
 import React, { ComponentType, ReactNode, useState } from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -63,7 +64,7 @@ import {
   treemapNodeChartMouseHoverTooltipSelector,
 } from './tooltipMouseHoverSelectors';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
-import { expectScreenshot, expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 import {
   selectTooltipAxisDomain,
   selectTooltipAxisDomainIncludingNiceTicks,
@@ -392,7 +393,7 @@ describe('Tooltip visibility', () => {
 
       await showTooltip(container, mouseHoverSelector, debug);
 
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     test('Should move when the mouse moves', async () => {
@@ -408,13 +409,13 @@ describe('Tooltip visibility', () => {
 
       const tooltipTriggerElement = await showTooltip(container, mouseHoverSelector);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await fireEvent.mouseMove(tooltipTriggerElement, { clientX: 201, clientY: 201 });
 
       await flushPendingFrames();
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it(`should move tooltip onTouchMove with active tooltip index ${tooltipIndex}`, async context => {
@@ -441,14 +442,14 @@ describe('Tooltip visibility', () => {
         clientY: 200,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await showTooltipOnCoordinateTouch(container, mouseHoverSelector, {
         clientX: 201,
         clientY: 201,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should render customized tooltip when content is set to be a react element', async () => {
@@ -531,11 +532,11 @@ describe('Tooltip visibility', () => {
         const { container } = await render(<Example />);
         await showTooltip(container, mouseHoverSelector);
 
-        await expectScreenshot(container);
+        await takeSnapshot();
 
         await fireEvent.mouseLeave(container);
 
-        await expectScreenshot(container);
+        await takeSnapshot();
 
         await expect
           .element(page.getByCSS('[data-testid="my-custom-portal-target"] > .recharts-tooltip-wrapper'))
@@ -556,7 +557,7 @@ describe('Tooltip visibility', () => {
 
         await showTooltip(container, mouseHoverSelector);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
         assertNotNull(tooltipTriggerElementAfterHover);
@@ -566,7 +567,7 @@ describe('Tooltip visibility', () => {
         });
 
         // Still visible after moving out of the chart, because active is true.
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       test('with active=false it should never render tooltip', async () => {
@@ -605,7 +606,7 @@ describe('Tooltip visibility', () => {
 
         await showTooltip(container, mouseHoverSelector);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
         assertNotNull(tooltipTriggerElementAfterHover);
@@ -635,17 +636,17 @@ describe('Tooltip visibility', () => {
         const tooltip = page.elementLocator(getTooltip(container));
 
         // Tooltip should be visible, since defaultIndex was set
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         const tooltipTriggerElement = await showTooltip(container, mouseHoverSelector);
 
         // Tooltip should be able to move when the mouse moves over the chart
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await fireEvent.mouseOver(tooltipTriggerElement, { clientX: 350, clientY: 200 });
 
         // Tooltip should be able to move when the mouse moves over the chart
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         const tooltipTriggerElementAfterHover = container.querySelector(mouseHoverSelector);
         assertNotNull(tooltipTriggerElementAfterHover);
@@ -699,7 +700,7 @@ describe('Tooltip visibility', () => {
           </Wrapper>,
         );
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
   });
@@ -1387,14 +1388,14 @@ describe('Tooltip visibility', () => {
         clientY: 200,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await showTooltipOnCoordinate(container, RadialBarChartTestCase.mouseHoverSelector, {
         clientX: 201,
         clientY: 201,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should move onTouchMove', async () => {
@@ -1409,14 +1410,14 @@ describe('Tooltip visibility', () => {
         clientY: 200,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
 
       await showTooltipOnCoordinateTouch(container, RadialBarChartTestCase.mouseHoverSelector, {
         clientX: 201,
         clientY: 201,
       });
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 
@@ -1552,7 +1553,7 @@ describe('Tooltip visibility', () => {
 
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1578,7 +1579,7 @@ describe('Tooltip visibility', () => {
 
         await showTooltip(container, composedChartMouseHoverTooltipSelector);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
   });
@@ -1607,7 +1608,7 @@ describe('Tooltip visibility', () => {
       },
       debug,
     );
-    await expectTooltipScreenshot(container);
+    await snapshotTooltip(container);
   });
 
   test('defaultIndex can be updated by parent control', async () => {
@@ -1639,7 +1640,7 @@ describe('Tooltip visibility', () => {
     const { container } = await render(<Example />);
 
     // The tooltip and the cursor should be visible, since defaultIndex was set
-    await expectScreenshot(container);
+    await takeSnapshot();
 
     /*
      * Synthetic click, not userEvent: a real pointer stays where the button was,
@@ -1648,7 +1649,7 @@ describe('Tooltip visibility', () => {
     await fireEvent.click(container.querySelector('#goRight') as HTMLButtonElement);
 
     // The tooltip should show the next data point
-    await expectScreenshot(container);
+    await takeSnapshot();
   });
 });
 
@@ -1675,7 +1676,7 @@ describe('Active element visibility', () => {
 
       await showTooltip(container, mouseHoverSelector, debug);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 
@@ -1728,7 +1729,7 @@ describe('Cursor visibility', () => {
 
       await showTooltip(container, mouseHoverSelector, debug);
 
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should not display cursor when cursor=false', async () => {

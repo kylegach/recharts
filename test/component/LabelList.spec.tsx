@@ -1,8 +1,8 @@
 import { render } from 'vitest-browser-react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import React from 'react';
 
 import { Bar, BarChart, LabelList, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from '../../src';
-import { expectScreenshot } from '../helper/browser/screenshot';
 
 describe('<LabelList />', () => {
   it('Render labels in ScatterChart', async () => {
@@ -14,7 +14,7 @@ describe('<LabelList />', () => {
       { x: 150, y: 400, z: 500 },
       { x: 110, y: 280, z: 200 },
     ];
-    const { container } = await render(
+    await render(
       <ScatterChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20 }}>
         <XAxis dataKey="x" name="stature" unit="cm" />
         <YAxis dataKey="y" name="weight" unit="kg" />
@@ -26,7 +26,7 @@ describe('<LabelList />', () => {
       </ScatterChart>,
     );
 
-    await expectScreenshot(container);
+    await takeSnapshot();
   });
 
   it('Render labels in BarChart with an offset', async () => {
@@ -38,7 +38,7 @@ describe('<LabelList />', () => {
       { x: 150, y: '400' },
       { x: 110, y: '280' },
     ];
-    const { container } = await render(
+    await render(
       <BarChart width={400} height={400} margin={{ top: 20, right: 20, bottom: 20 }} data={data}>
         <XAxis dataKey="x" />
         <YAxis />
@@ -50,6 +50,6 @@ describe('<LabelList />', () => {
       </BarChart>,
     );
 
-    await expectScreenshot(container);
+    await takeSnapshot();
   });
 });

@@ -30,7 +30,7 @@ import { assertNotNull } from '../../helper/assertNotNull';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
 import { flushPendingFrames } from '../../helper/browser/act';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 type TooltipEventTypeTestCase = {
   testName: string;
@@ -163,7 +163,7 @@ describe('tooltipEventType', () => {
 
         await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await hideTooltip(container, barChartMouseHoverTooltipSelector);
 
@@ -198,11 +198,11 @@ describe('tooltipEventType', () => {
 
         await fireEvent.click(trigger, { clientX: 200, clientY: 200 });
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await fireEvent.click(trigger, { clientX: 200, clientY: 200 });
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should not react to mouse over', async () => {
@@ -257,7 +257,7 @@ describe('tooltipEventType', () => {
         assertNotNull(trigger);
 
         await fireEvent.mouseOver(trigger, { clientX: 20, clientY: 20 });
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         // this is needed for bar background - for some reason it needs to select the trigger twice, otherwise mouseOut does not dismiss the tooltip
         const trigger2 = container.querySelector(itemSelector);
@@ -289,16 +289,16 @@ describe('tooltipEventType', () => {
         assertNotNull(trigger);
 
         await fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await fireEvent.mouseLeave(trigger);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         await fireEvent.mouseLeave(container);
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('should not react to mouse hover on the item', async () => {

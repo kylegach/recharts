@@ -1,4 +1,5 @@
 import React from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { render } from 'vitest-browser-react';
 import { DefaultTooltipContent, DefaultTooltipContentProps } from '../../src';
 
@@ -40,7 +41,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect(tooltip).toMatchScreenshot();
+    await takeSnapshot();
   });
 
   it('renders the value returned by the formatter as a recharts tooltip item', async () => {
@@ -52,7 +53,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect(tooltip).toMatchScreenshot();
+    await takeSnapshot();
   });
 
   it('renders the name and value returned by the formatter as a recharts tooltip item', async () => {
@@ -64,7 +65,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect(tooltip).toMatchScreenshot();
+    await takeSnapshot();
   });
 
   it('renders without crashing when payload contains null or undefined entries', async () => {
@@ -96,6 +97,7 @@ describe('DefaultTooltipContent', () => {
       ] as any,
     };
     const screen = await render(<DefaultTooltipContent {...mockPropsWithSparsePayload} />);
-    await expect(screen.getByCSS('div.recharts-default-tooltip')).toMatchScreenshot();
+    await expect.element(screen.getByCSS('div.recharts-default-tooltip')).toBeVisible();
+    await takeSnapshot();
   });
 });

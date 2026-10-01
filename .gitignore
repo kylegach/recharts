@@ -41,6 +41,9 @@ bundle-visualization.html
 # Website-generated bundle size data
 www/public/generated/bundleSizeData.generated.json
 
-# Vitest Browser Mode failure screenshots, screenshot diffs and attachments.
-# Commit the reference screenshots in __screenshots__.
+# Vitest Browser Mode failure screenshots and attachments
+__screenshots__/
 .vitest-attachments/
+
+# Chromatic archives from the Vitest browser tests
+.vitest/

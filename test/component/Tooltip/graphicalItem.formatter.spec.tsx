@@ -12,7 +12,7 @@ import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRec
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 
 describe('per-graphical-item formatter prop (issue #6210)', () => {
   beforeEach(() => {
@@ -46,7 +46,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 
@@ -68,7 +68,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 
@@ -90,7 +90,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     it('should include formatter only on the bar that has it', async () => {
@@ -129,7 +129,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, lineChartMouseHoverTooltipSelector);
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 });

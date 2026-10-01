@@ -83,7 +83,7 @@ import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRec
 import { selectTooltipAxisId } from '../../../src/state/selectors/selectTooltipAxisId';
 import { selectTooltipAxisType } from '../../../src/state/selectors/selectTooltipAxisType';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
-import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
+import { snapshotTooltip } from '../../helper/browser/snapshot';
 import { LineSettings } from '../../../src/state/types/LineSettings';
 import { noop } from '../../../src/util/DataUtils';
 
@@ -421,7 +421,7 @@ describe('Tooltip payload', () => {
 
       await showTooltipOnCoordinate(container, mouseHoverSelector, mouseCoordinate, debug);
 
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
   });
 
@@ -1185,7 +1185,7 @@ describe('Tooltip payload', () => {
         LineChartDataOnGraphicalItemTestCase.mouseCoordinate,
       );
 
-      await expectTooltipScreenshot(container);
+      await snapshotTooltip(container);
     });
 
     it('should select active label', async () => {
@@ -1428,7 +1428,7 @@ describe('Tooltip payload', () => {
 
     await showTooltip(container, ComposedChartTestCase.mouseHoverSelector, debug);
 
-    await expectTooltipScreenshot(container);
+    await snapshotTooltip(container);
   });
 
   describe('shared prop', () => {
@@ -1445,7 +1445,7 @@ describe('Tooltip payload', () => {
 
         await showTooltip(container, barChartMouseHoverTooltipSelector, debug);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('when false, should render tooltip payload with data from single Bar', async () => {
@@ -1460,7 +1460,7 @@ describe('Tooltip payload', () => {
 
         await showTooltip(container, barMouseHoverTooltipSelector, debug);
 
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
 
       it('when false in vertical layout with sparse data, should show correct payload for each bar (issue #7261)', async () => {
@@ -1488,7 +1488,7 @@ describe('Tooltip payload', () => {
         assertNotNull(bar1Rect);
         await fireEvent.mouseOver(bar1Rect, { clientX: 100, clientY: 100 });
         await flushPendingFrames();
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
 
         // Hover bar2 (row B) — should show bar2's payload, not bar1's
         const bar2Group = barGroups[1];
@@ -1496,7 +1496,7 @@ describe('Tooltip payload', () => {
         assertNotNull(bar2Rect);
         await fireEvent.mouseOver(bar2Rect, { clientX: 200, clientY: 200 });
         await flushPendingFrames();
-        await expectTooltipScreenshot(container);
+        await snapshotTooltip(container);
       });
     });
 
@@ -1596,7 +1596,7 @@ describe('Tooltip payload', () => {
 
           await showTooltip(container, radialBarChartMouseHoverTooltipSelector, debug);
 
-          await expectTooltipScreenshot(container);
+          await snapshotTooltip(container);
         });
       });
 
@@ -1612,7 +1612,7 @@ describe('Tooltip payload', () => {
           );
 
           await showTooltip(container, radialBarMouseHoverTooltipSelector, debug);
-          await expectTooltipScreenshot(container);
+          await snapshotTooltip(container);
         });
       });
     });

@@ -1,11 +1,11 @@
 import React from 'react';
+import { takeSnapshot } from '@chromatic-com/vitest';
 import { describe, it, beforeEach } from 'vitest';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { Line, LineChart, Tooltip } from '../../../src';
 import { showTooltipOnCoordinate } from '../../helper/browser/tooltipTestHelpers';
 import { lineChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
-import { expectScreenshot } from '../../helper/browser/screenshot';
 
 describe('Tooltip offset', () => {
   beforeEach(() => {
@@ -40,19 +40,19 @@ describe('Tooltip offset', () => {
        * tooltipX = 0 + offset(10) = 10
        * tooltipY = 20 + offset(10) = 30
        */
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should position tooltip at { x: 20, y: 40 } with offset=20', async () => {
       const { container } = await renderTestCase(20);
       await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, { clientX: 20, clientY: 20 });
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should position tooltip at { x: 0, y: 20 } with offset=0', async () => {
       const { container } = await renderTestCase(0);
       await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, { clientX: 20, clientY: 20 });
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 
@@ -60,19 +60,19 @@ describe('Tooltip offset', () => {
     it('should position tooltip at { x: 10, y: 50 } with offset={ x: 10, y: 30 }', async () => {
       const { container } = await renderTestCase({ x: 10, y: 30 });
       await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, { clientX: 20, clientY: 20 });
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should position tooltip at { x: 0, y: 30 } with offset={ x: 0, y: 10 }', async () => {
       const { container } = await renderTestCase({ x: 0, y: 10 });
       await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, { clientX: 20, clientY: 20 });
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
 
     it('should position tooltip at { x: 10, y: 20 } with offset={ x: 10, y: 0 }', async () => {
       const { container } = await renderTestCase({ x: 10, y: 0 });
       await showTooltipOnCoordinate(container, lineChartMouseHoverTooltipSelector, { clientX: 20, clientY: 20 });
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 
@@ -86,7 +86,7 @@ describe('Tooltip offset', () => {
        * tooltipX = 50 + offset(-5) = 45
        * tooltipY = 20 + offset(15) = 35
        */
-      await expectScreenshot(container);
+      await takeSnapshot();
     });
   });
 });
