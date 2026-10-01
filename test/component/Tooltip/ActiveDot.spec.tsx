@@ -107,7 +107,7 @@ describe('ActiveDot', () => {
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('cx', '161');
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('cy', '102.5');
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('r', '4');
-      await expect.element(page.elementLocator(customElement)).toHaveAttribute('fill', '#3182bd');
+      await expect.element(page.elementLocator(customElement)).toHaveAttribute('fill', 'hotpink');
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('stroke-width', '2');
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('stroke', '#fff');
       await expect.element(page.elementLocator(customElement)).toHaveAttribute('payload', '[object Object]'); // sic!
@@ -138,7 +138,7 @@ describe('ActiveDot', () => {
         cx: 161,
         cy: 102.5,
         dataKey: 'uv',
-        fill: '#3182bd',
+        fill: 'hotpink',
         index: 2,
         payload: {
           amt: 2400,
