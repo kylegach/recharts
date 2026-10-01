@@ -828,8 +828,9 @@ describe('Tooltip synchronization', () => {
       expectTooltipPayload(wrapperA, 'Page D', ['Mike : 200']);
       expectTooltipPayload(wrapperB, 'Page D', ['Mike : 200']);
 
-      expectTooltipCoordinate(wrapperA, { x: 212.65496645665198, y: 212.65496645665195 });
-      expectTooltipCoordinate(wrapperB, { x: 212.65496645665198, y: 212.65496645665195 });
+      // The browser serializes inline style numbers to 6 significant digits
+      expectTooltipCoordinate(wrapperA, { x: 212.655, y: 212.655 });
+      expectTooltipCoordinate(wrapperB, { x: 212.655, y: 212.655 });
 
       hideTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 

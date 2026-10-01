@@ -7,6 +7,10 @@ import { getWordsByLines } from '../../src/component/Text';
 import * as DOMUtils from '../../src/util/DOMUtils';
 import { assertNotNull } from '../helper/assertNotNull';
 
+// Browser Mode cannot spy on ESM exports directly. This wraps every export in a spy that calls the original.
+// See https://vitest.dev/guide/browser/#spying-on-module-exports
+vi.mock('../../src/util/DOMUtils', { spy: true });
+
 describe('<Text />', () => {
   const mockRect = {
     width: 25,
@@ -296,7 +300,7 @@ describe('<Text />', () => {
 
 describe('getWordsByLines', () => {
   function mockGetStringSize(mockedWidths: Record<string, number | undefined>) {
-    vi.spyOn(DOMUtils, 'getStringSize').mockImplementation(text => {
+    vi.mocked(DOMUtils.getStringSize).mockImplementation(text => {
       const width = mockedWidths[text];
 
       if (width == null) {
@@ -320,6 +324,11 @@ describe('getWordsByLines', () => {
       'Marc…': 11,
       '\u00A0': 1,
     });
+  });
+
+  afterEach(() => {
+    // `restoreMocks` does not reset module mocks, so put the original implementation back for later tests
+    vi.mocked(DOMUtils.getStringSize).mockRestore();
   });
 
   it('returns the original text if it does not overflow', () => {

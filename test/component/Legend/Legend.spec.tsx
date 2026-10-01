@@ -526,6 +526,11 @@ describe('<Legend />', () => {
   });
 
   describe('position prop', () => {
+    beforeEach(() => {
+      // Give the legend a fixed size so the expected positions do not depend on fonts
+      mockGetBoundingClientRect({ width: 100, height: 20 });
+    });
+
     it('should set absolute position based on position="top"', () => {
       const { container } = rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData}>
@@ -534,7 +539,7 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
       // top center of 500x500
       // x: 250, y: 0
       // anchor middle/start (cartesian hook logic for top) -> horizontal: middle, vertical: end
@@ -554,10 +559,11 @@ describe('<Legend />', () => {
       // So top: 0, left: 250, transform: translate(-50%, -100%)
       // This places it *above* the chart. Which might be clipped.
       // But we just verify the styles here.
-      expect(legendWrapper).toHaveStyle({
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         position: 'absolute',
-        // 5px is the default margin
-        top: '5px',
+        // 5px default margin + 20px legend height
+        top: '25px',
         left: '250px',
         transform: 'translate(-50%, -100%)',
       });
@@ -571,11 +577,12 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
-      expect(legendWrapper).toHaveStyle({
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         position: 'absolute',
-        // 3px is the top custom margin
-        top: '3px',
+        // 3px top custom margin + 20px legend height
+        top: '23px',
         // now because position is `top`, means the legend is centered horizontally, we expect it to be positioned to 250 + (30/2) = 265
         left: '265px',
         transform: 'translate(-50%, -100%)',
@@ -590,14 +597,15 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
       // insideBottomRight
       // x = width = 500
       // y = height = 500
       // hAnchor = end, vAnchor = end
       // translate(-100%, -100%)
       // default margins are 5px
-      expect(legendWrapper).toHaveStyle({
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         position: 'absolute',
         top: '495px',
         left: '495px',
@@ -615,8 +623,9 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
-      expect(legendWrapper).toHaveStyle({
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         top: '459px',
         left: '493px',
         transform: 'translate(-100%, -100%)',
@@ -631,22 +640,23 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
       // Left
       // The left offset reserves space between the legend and the plot, so the
       // legend itself remains aligned with the chart margin.
       // y = 250
       // hAnchor = end (-100%), vAnchor = middle (-50%)
-      expect(legendWrapper).toHaveStyle({
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         position: 'absolute',
         top: '250px',
-        left: '5px',
+        // 5px default margin + 100px legend width
+        left: '105px',
         transform: 'translate(-100%, -50%)',
       });
     });
 
     it('should position outside legends beyond the axes', () => {
-      mockGetBoundingClientRect({ width: 100, height: 20 });
       const { container } = rechartsTestRender(
         <LineChart width={500} height={500} data={numericalData} margin={{ top: 3, right: 0, bottom: 11, left: 30 }}>
           <XAxis />
@@ -656,11 +666,12 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
-      expect(legendWrapper).toHaveStyle({
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         top: '469px',
         left: '265px',
-        transform: 'translate(-50%, 0)',
+        transform: 'translate(-50%, 0px)',
       });
     });
 
@@ -697,10 +708,11 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
       // x: 100, y: 100
       // default anchors are end/end for object position in useCartesianPosition
-      expect(legendWrapper).toHaveStyle({
+      // The computed transform is a matrix, so check the inline style instead
+      expect(legendWrapper.style).toMatchObject({
         position: 'absolute',
         // the coordinates appear to be calculated from the inner viewbox, and apply margins too
         top: '105px',
@@ -784,9 +796,10 @@ describe('<Legend />', () => {
         </LineChart>,
       );
 
-      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0];
-      expect(legendWrapper).not.toHaveStyle({ width: 'auto' });
-      expect(legendWrapper).toHaveStyle({ height: 'auto' });
+      const legendWrapper = container.getElementsByClassName('recharts-legend-wrapper')[0] as HTMLElement;
+      // The computed height is the real pixel height, so check the inline style instead
+      expect(legendWrapper.style.width).not.toBe('auto');
+      expect(legendWrapper.style.height).toBe('auto');
       const legendItem = container.getElementsByClassName('legend-item-0')[0];
       const surface = legendItem.getElementsByClassName('recharts-surface')[0];
       expect(surface.getAttribute('height')).toBe('14');
@@ -1615,8 +1628,8 @@ describe('<Legend />', () => {
         {
           wrapperStyle: { left: '31px', right: '33px', bottom: '37px', top: '41px' },
           name: 'all provided',
-          expectedStyle:
-            'position: absolute; width: 470px; height: auto; left: 31px; right: 33px; bottom: 37px; top: 41px;',
+          // The browser collapses all four sides into the `inset` shorthand
+          expectedStyle: 'position: absolute; width: 470px; height: auto; inset: 41px 33px 37px 31px;',
         },
         {
           wrapperStyle: { left: '31px', right: '33px', bottom: '37px' },

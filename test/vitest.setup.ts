@@ -3,7 +3,10 @@ import { vi } from 'vitest';
 import { restoreHTMLElementProperties } from './helper/mockHTMLElementProperty';
 import { setupConsoleWarningToError } from './helper/consoleWarningToError';
 
-process.env.TZ = 'UTC';
+// Browser Mode has no `process`; the browser project sets the time zone in vitest.config.mts instead.
+if (typeof process !== 'undefined') {
+  process.env.TZ = 'UTC';
+}
 
 // Setup console warning/error interception
 setupConsoleWarningToError();

@@ -49,6 +49,29 @@ export default defineConfig({
             './test/helper/expectFunctionReturning.ts',
           ],
           include: ['test/**/*.spec.ts?(x)'],
+          exclude: ['test/component/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'browser',
+          setupFiles: [
+            'test/vitest.setup.ts',
+            'test/helper/toBeRechartsScale.ts',
+            'test/helper/expectStackGroups.ts',
+            './test/helper/expectFunctionReturning.ts',
+          ],
+          include: ['test/component/**/*.spec.ts?(x)'],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({
+              // The browser ignores process.env.TZ, so set the time zone on the browser context
+              contextOptions: { timezoneId: 'UTC' },
+            }),
+            instances: [{ browser: 'chromium' }],
+          },
         },
       },
       {

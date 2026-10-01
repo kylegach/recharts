@@ -55,10 +55,13 @@ describe('<ResponsiveContainer />', () => {
   };
 
   it('Render a wrapper container in ResponsiveContainer', () => {
+    // The parent has no size, so the container measures 0 x 0.
     const { container } = render(
-      <ResponsiveContainer>
-        <DimensionSpy />
-      </ResponsiveContainer>,
+      <div style={{ width: 0, height: 0 }}>
+        <ResponsiveContainer>
+          <DimensionSpy />
+        </ResponsiveContainer>
+      </div>,
     );
 
     expect(container.querySelector('.recharts-responsive-container')).toBeTruthy();
@@ -259,9 +262,12 @@ describe('<ResponsiveContainer />', () => {
       </ResponsiveContainer>,
     );
 
-    const element = container.querySelector('.recharts-responsive-container');
+    const element = container.querySelector<HTMLElement>('.recharts-responsive-container');
+    assertNotNull(element);
 
-    expect(element).toHaveStyle({ width: '100%', height: '200px', 'min-width': '0' });
+    expect(element).toHaveStyle({ height: '200px', 'min-width': '0' });
+    // The computed width resolves 100% to pixels, so check the inline style instead.
+    expect(element.style.width).toBe('100%');
   });
 
   it('should accept and render the style prop if it is set', () => {
@@ -287,12 +293,15 @@ describe('<ResponsiveContainer />', () => {
       </ResponsiveContainer>,
     );
 
-    expect(container.querySelector('.recharts-responsive-container')).toHaveStyle({
-      width: '100%',
+    const element = container.querySelector<HTMLElement>('.recharts-responsive-container');
+    assertNotNull(element);
+    expect(element).toHaveStyle({
       height: '100px',
       'background-color': 'rgb(255,0,0)',
       color: 'rgb(255,0,0)',
     });
+    // The computed width resolves 100% to pixels, so check the inline style instead.
+    expect(element.style.width).toBe('100%');
   });
 
   it('should have a min-width of 200px when minWidth is 200', () => {
@@ -304,9 +313,12 @@ describe('<ResponsiveContainer />', () => {
       </ResponsiveContainer>,
     );
 
-    const element = container.querySelector('.recharts-responsive-container');
+    const element = container.querySelector<HTMLElement>('.recharts-responsive-container');
+    assertNotNull(element);
 
-    expect(element).toHaveStyle({ width: '100%', height: '200px', 'min-width': '200px' });
+    expect(element).toHaveStyle({ height: '200px', 'min-width': '200px' });
+    // The computed width resolves 100% to pixels, so check the inline style instead.
+    expect(element.style.width).toBe('100%');
   });
 
   it('should render multiple children, even when nested', () => {
@@ -325,8 +337,11 @@ describe('<ResponsiveContainer />', () => {
       </ResponsiveContainer>,
     );
 
-    const responsiveContainerDiv = container.querySelector('.recharts-responsive-container');
-    expect(responsiveContainerDiv).toHaveStyle({ width: '100%', height: '200px', 'min-width': '200px' });
+    const responsiveContainerDiv = container.querySelector<HTMLElement>('.recharts-responsive-container');
+    assertNotNull(responsiveContainerDiv);
+    expect(responsiveContainerDiv).toHaveStyle({ height: '200px', 'min-width': '200px' });
+    // The computed width resolves 100% to pixels, so check the inline style instead.
+    expect(responsiveContainerDiv.style.width).toBe('100%');
 
     const elementsInside = screen.getAllByTestId('inside');
     expect(elementsInside).toHaveLength(4);

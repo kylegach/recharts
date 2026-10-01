@@ -68,11 +68,12 @@ describe('Tooltip animation', () => {
         prime(container);
 
         const tooltip = getTooltip(container);
-        expect(tooltip).toHaveStyle({
-          top: 0,
-          left: 0,
+        // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
+        expect(tooltip.style).toMatchObject({
+          top: '0px',
+          left: '0px',
           transform: 'translate(15px, 30px)',
-          transition: 'transform 400ms ease',
+          transition: 'transform 400ms',
         });
       });
     });
@@ -98,11 +99,12 @@ describe('Tooltip animation', () => {
         const { container } = renderTestCase();
         const tooltip = prime(container);
 
-        expect(tooltip).toHaveStyle({
-          top: 0,
-          left: 0,
+        // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
+        expect(tooltip.style).toMatchObject({
+          top: '0px',
+          left: '0px',
           transform: 'translate(75px, 60px)',
-          transition: 'transform 400ms ease',
+          transition: 'transform 400ms',
         });
       });
     });
@@ -155,11 +157,12 @@ describe('Tooltip animation', () => {
         prime(container);
 
         const tooltip = getTooltip(container);
-        expect(tooltip).toHaveStyle({
-          top: 0,
-          left: 0,
+        // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
+        expect(tooltip.style).toMatchObject({
+          top: '0px',
+          left: '0px',
           transform: 'translate(15px, 30px)',
-          transition: 'transform 400ms ease',
+          transition: 'transform 400ms',
         });
       });
     });
@@ -185,11 +188,12 @@ describe('Tooltip animation', () => {
         const { container } = renderTestCase();
         const tooltip = prime(container);
 
-        expect(tooltip).toHaveStyle({
-          top: 0,
-          left: 0,
+        // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
+        expect(tooltip.style).toMatchObject({
+          top: '0px',
+          left: '0px',
           transform: 'translate(75px, 60px)',
-          transition: 'transform 400ms ease',
+          transition: 'transform 400ms',
         });
       });
     });

@@ -40,7 +40,12 @@ function showTooltipWithEvent(
       break;
     }
     case 'touch': {
-      fireEvent.touchMove(tooltipTriggerElement, { touches: [coordinate] });
+      // Real browsers require Touch instances. jsdom has no Touch constructor, so it gets a plain object.
+      const touch =
+        typeof Touch === 'undefined'
+          ? coordinate
+          : new Touch({ identifier: 0, target: tooltipTriggerElement, ...coordinate });
+      fireEvent.touchMove(tooltipTriggerElement, { touches: [touch] });
       break;
     }
     case 'hover': {
