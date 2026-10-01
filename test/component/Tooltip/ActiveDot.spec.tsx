@@ -26,6 +26,7 @@ import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRec
 import { ActiveDotProps } from '../../../src/util/types';
 import { assertNotNull } from '../../helper/assertNotNull';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
+import { expectScreenshot } from '../../helper/browser/screenshot';
 
 const commonChartProps = {
   width: 400,
@@ -50,7 +51,6 @@ describe('ActiveDot', () => {
       const tooltipTrigger = await showTooltip(container, areaChartMouseHoverTooltipSelector, debug);
       const activeDot = container.querySelector('.recharts-active-dot');
       assertNotNull(activeDot);
-      await expect.element(page.elementLocator(activeDot)).toBeVisible();
       expect(activeDot.getAttributeNames()).toEqual(['class']);
       await expect
         .element(page.elementLocator(activeDot))
@@ -58,15 +58,9 @@ describe('ActiveDot', () => {
 
       const circle = activeDot.querySelector('circle');
       assertNotNull(circle);
-      await expect.element(page.elementLocator(circle)).toBeVisible();
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cx', '161');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cy', '102.5');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('r', '4');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('fill', '#3182bd');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke-width', '2');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke', '#fff');
+      await expectScreenshot(container);
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly
@@ -175,7 +169,6 @@ describe('ActiveDot', () => {
       const tooltipTrigger = await showTooltip(container, lineChartMouseHoverTooltipSelector, debug);
       const activeDot = container.querySelector('.recharts-active-dot');
       assertNotNull(activeDot);
-      await expect.element(page.elementLocator(activeDot)).toBeVisible();
       expect(activeDot.getAttributeNames()).toEqual(['class']);
       await expect
         .element(page.elementLocator(activeDot))
@@ -183,15 +176,9 @@ describe('ActiveDot', () => {
 
       const circle = activeDot.querySelector('circle');
       assertNotNull(circle);
-      await expect.element(page.elementLocator(circle)).toBeVisible();
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cx', '161');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cy', '102.5');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('r', '4');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('fill', '#3182bd');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke-width', '2');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke', '#fff');
+      await expectScreenshot(container);
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly
@@ -330,7 +317,6 @@ describe('ActiveDot', () => {
       const tooltipTrigger = await showTooltip(container, composedChartMouseHoverTooltipSelector, debug);
       const activeDot = container.querySelector('.recharts-active-dot');
       assertNotNull(activeDot);
-      await expect.element(page.elementLocator(activeDot)).toBeVisible();
       expect(activeDot.getAttributeNames()).toEqual(['class']);
       await expect
         .element(page.elementLocator(activeDot))
@@ -338,15 +324,9 @@ describe('ActiveDot', () => {
 
       const circle = activeDot.querySelector('circle');
       assertNotNull(circle);
-      await expect.element(page.elementLocator(circle)).toBeVisible();
       expect(circle.getAttributeNames()).toEqual(['cx', 'cy', 'r', 'fill', 'stroke-width', 'stroke', 'class']);
       await expect.element(page.elementLocator(circle)).toHaveAttribute('class', 'recharts-dot');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cx', '161');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('cy', '102.5');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('r', '4');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('fill', '#3182bd');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke-width', '2');
-      await expect.element(page.elementLocator(circle)).toHaveAttribute('stroke', '#fff');
+      await expectScreenshot(container);
 
       await fireEvent.mouseOut(tooltipTrigger);
       // The active dot is removed on mouse out, and a locator cannot target a removed element, so check the element directly

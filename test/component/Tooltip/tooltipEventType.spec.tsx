@@ -30,6 +30,7 @@ import { assertNotNull } from '../../helper/assertNotNull';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
 import { flushPendingFrames } from '../../helper/browser/act';
+import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
 
 type TooltipEventTypeTestCase = {
   testName: string;
@@ -162,7 +163,7 @@ describe('tooltipEventType', () => {
 
         await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         await hideTooltip(container, barChartMouseHoverTooltipSelector);
 
@@ -197,11 +198,11 @@ describe('tooltipEventType', () => {
 
         await fireEvent.click(trigger, { clientX: 200, clientY: 200 });
 
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         await fireEvent.click(trigger, { clientX: 200, clientY: 200 });
 
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
       });
 
       it('should not react to mouse over', async () => {
@@ -256,7 +257,7 @@ describe('tooltipEventType', () => {
         assertNotNull(trigger);
 
         await fireEvent.mouseOver(trigger, { clientX: 20, clientY: 20 });
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         // this is needed for bar background - for some reason it needs to select the trigger twice, otherwise mouseOut does not dismiss the tooltip
         const trigger2 = container.querySelector(itemSelector);
@@ -284,22 +285,20 @@ describe('tooltipEventType', () => {
       it('should display tooltip when clicking on the item element, and keep it there on second click too, and after mouse over too', async () => {
         const { container } = await render(<Component tooltipTrigger={tooltipTrigger} />);
 
-        const tooltip = getTooltip(container);
-
         const trigger = container.querySelector(itemSelector);
         assertNotNull(trigger);
 
         await fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         await fireEvent.click(trigger, { clientX: 20, clientY: 20 });
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         await fireEvent.mouseLeave(trigger);
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
 
         await fireEvent.mouseLeave(container);
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
+        await expectTooltipScreenshot(container);
       });
 
       it('should not react to mouse hover on the item', async () => {

@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { Line, LineChart, Tooltip } from '../../../src';
 import {
-  expectTooltipCoordinate,
   expectTooltipNotVisible,
   getTooltip,
   hideTooltip,
@@ -13,6 +12,7 @@ import { lineChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors
 import { selectIsTooltipActive } from '../../../src/state/selectors/selectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
+import { expectScreenshot } from '../../helper/browser/screenshot';
 
 describe('Tooltip animation', () => {
   beforeEach(() => {
@@ -59,10 +59,7 @@ describe('Tooltip animation', () => {
         const { container } = await renderTestCase();
         await prime(container);
 
-        await expectTooltipCoordinate(container, {
-          x: 15,
-          y: 30,
-        });
+        await expectScreenshot(container);
       });
 
       it('should start at 0,0', async () => {
@@ -101,13 +98,14 @@ describe('Tooltip animation', () => {
         const { container } = await renderTestCase();
         const tooltip = await prime(container);
 
+        // The screenshot shows the final position, after the transition ends. It cannot show the transition itself.
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
         expect(tooltip.style).toMatchObject({
           top: '0px',
           left: '0px',
-          transform: 'translate(75px, 60px)',
           transition: 'transform 400ms',
         });
+        await expectScreenshot(container);
       });
     });
   });
@@ -150,10 +148,7 @@ describe('Tooltip animation', () => {
         const { container } = await renderTestCase();
         await prime(container);
 
-        await expectTooltipCoordinate(container, {
-          x: 15,
-          y: 30,
-        });
+        await expectScreenshot(container);
       });
 
       it('should start at 0,0', async () => {
@@ -192,13 +187,14 @@ describe('Tooltip animation', () => {
         const { container } = await renderTestCase();
         const tooltip = await prime(container);
 
+        // The screenshot shows the final position, after the transition ends. It cannot show the transition itself.
         // toHaveStyle reads the computed style, which shows the in-progress transition. Check what the component set.
         expect(tooltip.style).toMatchObject({
           top: '0px',
           left: '0px',
-          transform: 'translate(75px, 60px)',
           transition: 'transform 400ms',
         });
+        await expectScreenshot(container);
       });
     });
   });

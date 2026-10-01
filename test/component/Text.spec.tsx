@@ -4,6 +4,7 @@ import React from 'react';
 import { vi } from 'vitest';
 import { Surface, Text } from '../../src';
 import { mockGetBoundingClientRect } from '../helper/mockGetBoundingClientRect';
+import { expectScreenshot } from '../helper/browser/screenshot';
 import { getWordsByLines } from '../../src/component/Text';
 import * as DOMUtils from '../../src/util/DOMUtils';
 
@@ -44,44 +45,37 @@ describe('<Text />', () => {
   test('renders number children', async () => {
     const screen = await render(
       <Surface width={300} height={300}>
-        <Text width={300} style={{ fontFamily: 'Courier' }}>
+        <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {12345}
         </Text>
       </Surface>,
     );
 
-    const text = screen.getByCSS('text');
-    await expect.element(text).toBeInTheDocument();
-
-    expect(text.element().textContent).toBe('12345');
+    await expectScreenshot(screen.container);
   });
 
   test('renders boolean children', async () => {
     const screen = await render(
       <Surface width={300} height={300}>
-        <Text width={300} style={{ fontFamily: 'Courier' }}>
+        <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {true}
         </Text>
       </Surface>,
     );
 
-    const text = screen.getByCSS('text');
-    await expect.element(text).toBeInTheDocument();
-    expect(text.element().textContent).toBe('true');
+    await expectScreenshot(screen.container);
   });
 
   test('renders the string "NaN" when children is NaN', async () => {
     const screen = await render(
       <Surface width={300} height={300}>
-        <Text width={300} style={{ fontFamily: 'Courier' }}>
+        <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           {NaN}
         </Text>
       </Surface>,
     );
 
-    const text = screen.getByCSS('text');
-    await expect.element(text).toBeInTheDocument();
-    expect(text.element().textContent).toBe('NaN');
+    await expectScreenshot(screen.container);
   });
 
   test.each([null, undefined] as const)('Renders nothing when children is %s', async (children: null | undefined) => {
@@ -100,7 +94,7 @@ describe('<Text />', () => {
     const screen = await render(
       <Surface width={300} height={300}>
         {/* @ts-expect-error typescript is correct here, Text doesn't accept ReactElement, the test is to demonstrate that */}
-        <Text width={300} style={{ fontFamily: 'Courier' }}>
+        <Text y={20} width={300} style={{ fontFamily: 'Courier' }}>
           <tspan x="0" dy="1.2em">
             Hello
           </tspan>
@@ -111,9 +105,7 @@ describe('<Text />', () => {
       </Surface>,
     );
 
-    const text = screen.getByCSS('text');
-    await expect.element(text).toBeInTheDocument();
-    expect(text.element().textContent).toBe('[object Object],[object Object]');
+    await expectScreenshot(screen.container);
   });
 
   test('Wraps long text if not enough width', async () => {

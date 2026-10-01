@@ -37,8 +37,7 @@ describe('TooltipBoundingBox', () => {
   };
   it('should render children when active prop is true', async () => {
     const screen = await render(<TooltipBoundingBox {...defaultProps} />);
-    await expect.element(screen.getByText('Hello world!')).toBeInTheDocument();
-    await expect.element(screen.getByText('Hello world!')).toBeVisible();
+    await expect(screen.getByText('Hello world!')).toMatchScreenshot();
   });
 
   it('should hide children when active prop is false', async () => {

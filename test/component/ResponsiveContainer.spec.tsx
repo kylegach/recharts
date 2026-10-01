@@ -7,6 +7,7 @@ import { mockGetBoundingClientRect } from '../helper/mockGetBoundingClientRect';
 import { assertNotNull } from '../helper/assertNotNull';
 import { useResponsiveContainerContext } from '../../src/component/ResponsiveContainer';
 import { act } from '../helper/browser/act';
+import { expectScreenshot } from '../helper/browser/screenshot';
 
 declare global {
   interface Window {
@@ -289,13 +290,11 @@ describe('<ResponsiveContainer />', () => {
     );
 
     const element = screen.getByCSS('.recharts-responsive-container');
-    await expect.element(element).toHaveStyle({
-      height: '100px',
-      backgroundColor: 'rgb(255,0,0)',
-      color: 'rgb(255,0,0)',
-    });
+    // The screenshot shows the height and the background color. Nothing shows the text color, so check it.
+    await expect.element(element).toHaveStyle({ color: 'rgb(255,0,0)' });
     // The computed width resolves 100% to pixels, so check the inline style instead.
     expect(element.element().style.width).toBe('100%');
+    await expectScreenshot(screen.container);
   });
 
   it('should have a min-width of 200px when minWidth is 200', async () => {
@@ -344,14 +343,11 @@ describe('<ResponsiveContainer />', () => {
       height: '200px',
     };
 
-    await expect.element(elementsInside.nth(0)).toHaveStyle({
-      ...expectedStyle,
-      backgroundColor: 'rgb(0, 0, 255)',
-    });
-
+    // The first element is blue, so the screenshot shows its size and color. The others are transparent.
     await expect.element(elementsInside.nth(1)).toHaveStyle(expectedStyle);
     await expect.element(elementsInside.nth(2)).toHaveStyle(expectedStyle);
     await expect.element(elementsInside.nth(3)).toHaveStyle(expectedStyle);
+    await expectScreenshot(screen.container);
   });
 
   it('should not re-create ResizeObserver when onResize function instance changes', async () => {

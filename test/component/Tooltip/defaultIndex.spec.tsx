@@ -5,10 +5,11 @@ import { createSelectorTestCase } from '../../helper/browser/createSelectorTestC
 import { Bar, BarChart, Line, LineChart, Pie, PieChart, Tooltip, XAxis, YAxis } from '../../../src';
 import { PageData } from '../../_data';
 import { selectActiveIndex, selectActiveLabel, selectTooltipPayload } from '../../../src/state/selectors/selectors';
-import { expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
+import { showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector, pieChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
+import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
 
 describe('defaultIndex', () => {
   describe('in BarChart', () => {
@@ -78,7 +79,7 @@ describe('defaultIndex', () => {
 
     it('should render tooltip before user interaction', async () => {
       const { container } = await renderTestCase();
-      await expectTooltipPayload(container, 'Page D', ['uv : 200']);
+      await expectTooltipScreenshot(container);
     });
   });
 
@@ -127,7 +128,7 @@ describe('defaultIndex', () => {
 
     it('should render tooltip before user interaction', async () => {
       const { container } = await renderTestCase();
-      await expectTooltipPayload(container, 'Page D', ['uv : 200']);
+      await expectTooltipScreenshot(container);
     });
   });
 

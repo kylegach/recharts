@@ -13,11 +13,11 @@ import {
   LineChart,
 } from '../../../src';
 import { numericalData } from '../../_data';
-import { expectLegendLabels } from '../../helper/expectLegendLabels';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { flushPendingFrames } from '../../helper/browser/act';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { assertNotNull } from '../../helper/assertNotNull';
+import { expectLegendScreenshot } from '../../helper/browser/screenshot';
 
 describe('Legend.itemSorter', () => {
   describe('with default content', () => {
@@ -30,10 +30,7 @@ describe('Legend.itemSorter', () => {
         </LineChart>,
       );
 
-      expectLegendLabels(container, [
-        { textContent: 'A', stroke: '#3182bd', fill: 'none' },
-        { textContent: 'B', stroke: '#3182bd', fill: 'none' },
-      ]);
+      await expectLegendScreenshot(container);
     });
 
     test('sorts legend items when itemSorter=dataKey', async () => {
@@ -45,10 +42,7 @@ describe('Legend.itemSorter', () => {
         </LineChart>,
       );
 
-      expectLegendLabels(container, [
-        { textContent: 'B', stroke: '#3182bd', fill: 'none' },
-        { textContent: 'A', stroke: '#3182bd', fill: 'none' },
-      ]);
+      await expectLegendScreenshot(container);
     });
   });
 
@@ -296,10 +290,7 @@ describe('Legend.itemSorter', () => {
       it('should render all items sorted by dataKey', async () => {
         const { container } = await renderTestCase();
 
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: 'red', fill: 'none' },
-          { textContent: 'A', stroke: 'blue', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
       });
     });
 
@@ -309,17 +300,11 @@ describe('Legend.itemSorter', () => {
 
         await getByText('A', { exact: true }).click();
         await flushPendingFrames();
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: 'red', fill: 'none' },
-          { textContent: 'A', stroke: '#ccc', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
 
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: '#ccc', fill: 'none' },
-          { textContent: 'A', stroke: '#ccc', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
       });
 
       it('should show the clicked item again and keep the order', async () => {
@@ -328,24 +313,15 @@ describe('Legend.itemSorter', () => {
         await getByText('A', { exact: true }).click();
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: '#ccc', fill: 'none' },
-          { textContent: 'A', stroke: '#ccc', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
 
         await getByText('B', { exact: true }).click();
         await flushPendingFrames();
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: 'red', fill: 'none' },
-          { textContent: 'A', stroke: '#ccc', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
 
         await getByText('A', { exact: true }).click();
         await flushPendingFrames();
-        expectLegendLabels(container, [
-          { textContent: 'B', stroke: 'red', fill: 'none' },
-          { textContent: 'A', stroke: 'blue', fill: 'none' },
-        ]);
+        await expectLegendScreenshot(container);
       });
     });
   });

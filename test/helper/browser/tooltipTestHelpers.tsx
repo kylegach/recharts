@@ -1,7 +1,6 @@
 import { expect } from 'vitest';
 import { page } from 'vitest/browser';
 import { assertNotNull } from '../assertNotNull';
-import { Coordinate } from '../../../src';
 import { flushPendingFrames } from './act';
 import { fireEvent } from './syntheticEvents';
 
@@ -141,19 +140,4 @@ export async function expectTooltipPayload(
   expect.soft(tooltip.querySelector('.recharts-tooltip-label')?.textContent).toBe(expectedTooltipTitle);
   const tooltipItems = tooltip.querySelectorAll('.recharts-tooltip-item');
   expect.soft(Array.from(tooltipItems).map(item => item.textContent)).toEqual(expectedTooltipContent);
-}
-
-/**
- * Expects the tooltip to be visible and at the expected coordinate.
- *
- * The browser serializes inline style numbers to 6 significant digits, so write the expected values that way.
- *
- * @param container parent where the Tooltip will be located
- * @param expectedCoordinate x, y expected coordinate of the tooltip
- * @returns void
- */
-export async function expectTooltipCoordinate(container: Element, expectedCoordinate: Coordinate): Promise<void> {
-  const tooltip = getTooltip(container);
-  await expect.element(page.elementLocator(tooltip)).toBeVisible();
-  expect(tooltip.style.transform).toContain(`translate(${expectedCoordinate.x}px, ${expectedCoordinate.y}px)`);
 }

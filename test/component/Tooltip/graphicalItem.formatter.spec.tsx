@@ -6,12 +6,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
 import { BarChart, XAxis, YAxis, Tooltip, Bar, LineChart, Line } from '../../../src';
 import { PageData } from '../../_data';
-import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
+import { expectTooltipNotVisible, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector, lineChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
+import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
 
 describe('per-graphical-item formatter prop (issue #6210)', () => {
   beforeEach(() => {
@@ -45,7 +46,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipPayload(container, 'Page B', ['pv : BAR_FORMATTED']);
+      await expectTooltipScreenshot(container);
     });
   });
 
@@ -67,7 +68,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipPayload(container, 'Page B', ['pv : PER_BAR']);
+      await expectTooltipScreenshot(container);
     });
   });
 
@@ -89,7 +90,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, barChartMouseHoverTooltipSelector);
-      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED_PV', 'uv : 300']);
+      await expectTooltipScreenshot(container);
     });
 
     it('should include formatter only on the bar that has it', async () => {
@@ -128,7 +129,7 @@ describe('per-graphical-item formatter prop (issue #6210)', () => {
       const { container } = await renderTestCase();
       await expectTooltipNotVisible(container);
       await showTooltip(container, lineChartMouseHoverTooltipSelector);
-      await expectTooltipPayload(container, 'Page C', ['pv : LINE_FORMATTED']);
+      await expectTooltipScreenshot(container);
     });
   });
 });

@@ -29,10 +29,7 @@ import {
 } from '../../../src';
 import { PageData } from '../../_data';
 import {
-  expectTooltipCoordinate,
   expectTooltipNotVisible,
-  expectTooltipPayload,
-  getTooltip,
   hideTooltip,
   showTooltip,
   showTooltipOnCoordinate,
@@ -67,13 +64,13 @@ import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
 import { selectChartViewBox } from '../../../src/state/selectors/selectChartOffsetInternal';
 import { assertNotNull } from '../../helper/assertNotNull';
 import { fireEvent } from '../../helper/browser/syntheticEvents';
+import { expectScreenshot, expectTooltipScreenshot } from '../../helper/browser/screenshot';
 
 type TooltipSyncTestCase = {
   // For identifying which test is running
   name: string;
   mouseHoverSelector: MouseHoverTooltipTriggerSelector;
   Wrapper: ComponentType<{ children: ReactNode; syncId: string; dataKey: string; className?: string }>;
-  tooltipContent: { chartOne: { name: string; value: string }; chartTwo: { name: string; value: string } };
 };
 
 const commonChartProps = {
@@ -91,7 +88,6 @@ const AreaChartTestCase: TooltipSyncTestCase = {
     </AreaChart>
   ),
   mouseHoverSelector: areaChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const BarChartTestCase: TooltipSyncTestCase = {
@@ -103,7 +99,6 @@ const BarChartTestCase: TooltipSyncTestCase = {
     </BarChart>
   ),
   mouseHoverSelector: barChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const LineChartHorizontalTestCase: TooltipSyncTestCase = {
@@ -119,7 +114,6 @@ const LineChartHorizontalTestCase: TooltipSyncTestCase = {
     </LineChart>
   ),
   mouseHoverSelector: lineChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const LineChartVerticalTestCase: TooltipSyncTestCase = {
@@ -145,7 +139,6 @@ const LineChartVerticalTestCase: TooltipSyncTestCase = {
     </LineChart>
   ),
   mouseHoverSelector: lineChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '278' }, chartTwo: { name: 'pv', value: '3908' } },
 };
 
 const ComposedChartWithAreaTestCase: TooltipSyncTestCase = {
@@ -159,7 +152,6 @@ const ComposedChartWithAreaTestCase: TooltipSyncTestCase = {
     </ComposedChart>
   ),
   mouseHoverSelector: composedChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const ComposedChartWithBarTestCase: TooltipSyncTestCase = {
@@ -173,7 +165,6 @@ const ComposedChartWithBarTestCase: TooltipSyncTestCase = {
     </ComposedChart>
   ),
   mouseHoverSelector: composedChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const ComposedChartWithLineTestCase: TooltipSyncTestCase = {
@@ -187,7 +178,6 @@ const ComposedChartWithLineTestCase: TooltipSyncTestCase = {
     </ComposedChart>
   ),
   mouseHoverSelector: composedChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'uv', value: '300' }, chartTwo: { name: 'pv', value: '1398' } },
 };
 
 const RadarChartTestCase: TooltipSyncTestCase = {
@@ -202,7 +192,6 @@ const RadarChartTestCase: TooltipSyncTestCase = {
     </RadarChart>
   ),
   mouseHoverSelector: radarChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'Mike', value: '189' }, chartTwo: { name: 'Mike', value: '4800' } },
 };
 
 const RadialBarChartTestCase: TooltipSyncTestCase = {
@@ -224,7 +213,6 @@ const RadialBarChartTestCase: TooltipSyncTestCase = {
     </RadialBarChart>
   ),
   mouseHoverSelector: radialBarChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'Mike', value: '200' }, chartTwo: { name: 'Mike', value: '9800' } },
 };
 
 const PieChartTestCase: TooltipSyncTestCase = {
@@ -236,7 +224,6 @@ const PieChartTestCase: TooltipSyncTestCase = {
     </PieChart>
   ),
   mouseHoverSelector: pieChartMouseHoverTooltipSelector,
-  tooltipContent: { chartOne: { name: 'Page A', value: '400' }, chartTwo: { name: 'Page A', value: '2400' } },
 };
 
 // const ScatterChartTestCase: TooltipVisibilityTestCase = {
@@ -330,7 +317,7 @@ describe('Tooltip synchronization', () => {
 
   describe.each([...cartesianTestCases, ...radialTestCases])(
     'as a child of $name',
-    ({ name, Wrapper, mouseHoverSelector, tooltipContent }) => {
+    ({ name, Wrapper, mouseHoverSelector }) => {
       const renderTestCase = createSelectorTestCase(({ children }) => (
         <>
           <div id="chartOne">
@@ -348,7 +335,6 @@ describe('Tooltip synchronization', () => {
       ));
 
       test(`${name} shows tooltip when synchronized with ${name}`, async () => {
-        const { chartOne: chartOneContent, chartTwo: chartTwoContent } = tooltipContent;
         const { container, debug } = await renderTestCase();
         // use ids to separate the charts so the `.recharts-wrapper` class can be used to activate the tooltip
         const wrapperOne = container.querySelector('#chartOne');
@@ -359,21 +345,9 @@ describe('Tooltip synchronization', () => {
         // target the first chart to show the tooltip
         await showTooltip(wrapperOne, mouseHoverSelector, debug);
 
-        // target the second chart to see if it has the synchronized tooltip showing
-        const tooltip = getTooltip(wrapperTwo);
-        await expect.element(page.elementLocator(tooltip)).toBeVisible();
-
-        const expectTooltipContent = async (wrapper: Element, content: { name: string; value: string }) => {
-          const tooltipContentName = page.elementLocator(wrapper).getByCSS('.recharts-tooltip-item-name');
-          const tooltipContentValue = page.elementLocator(wrapper).getByCSS('.recharts-tooltip-item-value');
-          await expect.element(tooltipContentName).toBeInTheDocument();
-          await expect.element(tooltipContentValue).toBeInTheDocument();
-          // Exact text checks. toHaveTextContent only checks that the text is included.
-          expect(tooltipContentName.element().textContent).toEqual(content.name);
-          expect(tooltipContentValue.element().textContent).toEqual(content.value);
-        };
-        await expectTooltipContent(wrapperOne, chartOneContent);
-        await expectTooltipContent(wrapperTwo, chartTwoContent);
+        // the second chart shows the synchronized tooltip
+        await expectTooltipScreenshot(wrapperOne);
+        await expectTooltipScreenshot(wrapperTwo);
       });
 
       test(`${name} should put the syncId into redux state`, async () => {
@@ -437,9 +411,8 @@ describe('Tooltip synchronization', () => {
       await expectTooltipNotVisible(wrapperB);
 
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
-
-      await expectTooltipPayload(wrapperA, 'Page C', ['uv : 500']);
-      await expectTooltipPayload(wrapperB, 'Page C', ['pv : 1500']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
 
       await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
 
@@ -555,9 +528,9 @@ describe('Tooltip synchronization', () => {
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
 
       // Chart A shows tooltip at the hovered point
-      await expectTooltipPayload(wrapperA, 'Day 3', ['uv : 300']);
+      await expectTooltipScreenshot(wrapperA);
       // Chart B should sync and show tooltip — NOT be cleared by Chart C's counter-emission
-      await expectTooltipPayload(wrapperB, 'Day 3', ['pv : 350']);
+      await expectTooltipScreenshot(wrapperB);
       // Chart C has no 'Day 3' entry, so its tooltip should be hidden
       assertNotNull(wrapperC);
       await expectTooltipNotVisible(wrapperC);
@@ -825,13 +798,10 @@ describe('Tooltip synchronization', () => {
       await expectTooltipNotVisible(wrapperB);
 
       await showTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
-
-      await expectTooltipPayload(wrapperA, 'Page D', ['Mike : 200']);
-      await expectTooltipPayload(wrapperB, 'Page D', ['Mike : 200']);
-
-      // The browser serializes inline style numbers to 6 significant digits
-      await expectTooltipCoordinate(wrapperA, { x: 212.655, y: 212.655 });
-      await expectTooltipCoordinate(wrapperB, { x: 212.655, y: 212.655 });
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
+      await expectScreenshot(wrapperA);
+      await expectScreenshot(wrapperB);
 
       await hideTooltip(wrapperA, radialBarChartMouseHoverTooltipSelector);
 
@@ -879,24 +849,23 @@ describe('Tooltip synchronization', () => {
 
       expect(spyA).toHaveBeenLastCalledWith('2');
       expect(spyB).toHaveBeenLastCalledWith('2');
-
-      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
     });
 
     it('should continue showing both tooltips after mouse leaves the chart A - because of the active prop!', async () => {
       const { wrapperA, wrapperB, debug } = await renderTestCase();
       await showTooltip(wrapperA, lineChartMouseHoverTooltipSelector, debug);
       await hideTooltip(wrapperA, lineChartMouseHoverTooltipSelector);
-      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
     });
 
     it('should show both tooltips when hovering over chart B', async () => {
       const { wrapperA, wrapperB, debug } = await renderTestCase();
       await showTooltip(wrapperB, lineChartMouseHoverTooltipSelector, debug);
-      await expectTooltipPayload(wrapperA, 'Page C', ['BookOne : 300']);
-      await expectTooltipPayload(wrapperB, 'Page C', ['BookTwo : 300']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
     });
 
     it('should hide both tooltips after mouse leaves the chart B - because it has no active prop', async () => {
@@ -917,9 +886,8 @@ describe('Tooltip synchronization', () => {
         { clientX: 100, clientY: 100 },
         debug,
       );
-
-      await expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
-      await expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
     });
 
     it('after switching charts from A to B, it should follow the mouse and update coordinates on both charts', async () => {
@@ -935,9 +903,8 @@ describe('Tooltip synchronization', () => {
 
       expect(spyA).toHaveBeenLastCalledWith('1');
       expect(spyB).toHaveBeenLastCalledWith('1');
-
-      await expectTooltipPayload(wrapperA, 'Page B', ['BookOne : 300']);
-      await expectTooltipPayload(wrapperB, 'Page B', ['BookTwo : 300']);
+      await expectTooltipScreenshot(wrapperA);
+      await expectTooltipScreenshot(wrapperB);
     });
 
     it('should clear synchronisation state after switching from A to B', async () => {
@@ -1091,6 +1058,7 @@ describe('brush synchronization', () => {
 
     await expect.element(page.elementLocator(firstChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
     await expect.element(page.elementLocator(secondChart).getByText('Page A', { exact: true })).not.toBeInTheDocument();
+    await expectScreenshot(container);
   });
 });
 
@@ -1120,17 +1088,11 @@ describe('Cursor synchronization', () => {
           </Wrapper>
         </>,
       );
-      const wrappers = container.querySelectorAll('.recharts-wrapper');
-      const wrapperOne = wrappers[0];
-      const wrapperTwo = wrappers[1];
-
       await expect.element(page.elementLocator(container).getByCSS('.recharts-tooltip-cursor')).not.toBeInTheDocument();
 
       await showTooltip(container, mouseHoverSelector, debug);
 
-      await expect.element(page.elementLocator(wrapperOne).getByCSS('svg .recharts-tooltip-cursor')).toBeVisible();
-      await expect.element(page.elementLocator(wrapperTwo).getByCSS('.recharts-tooltip-cursor')).toBeInTheDocument();
-      await expect.element(page.elementLocator(wrapperTwo).getByCSS('.recharts-tooltip-cursor')).toBeVisible();
+      await expectScreenshot(container);
     });
   });
 });

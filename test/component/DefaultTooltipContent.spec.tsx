@@ -40,7 +40,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect.element(tooltip).toHaveTextContent('mock labelFormatter');
+    await expect(tooltip).toMatchScreenshot();
   });
 
   it('renders the value returned by the formatter as a recharts tooltip item', async () => {
@@ -52,7 +52,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect.element(tooltip).toHaveTextContent('mock labelFormatteruv : SOME VALUE');
+    await expect(tooltip).toMatchScreenshot();
   });
 
   it('renders the name and value returned by the formatter as a recharts tooltip item', async () => {
@@ -64,7 +64,7 @@ describe('DefaultTooltipContent', () => {
     const tooltip = screen.getByCSS('div.recharts-default-tooltip');
     expect(tooltip.elements()).toHaveLength(1);
 
-    await expect.element(tooltip).toHaveTextContent('mock labelFormatterSOME NAME : SOME VALUE');
+    await expect(tooltip).toMatchScreenshot();
   });
 
   it('renders without crashing when payload contains null or undefined entries', async () => {
@@ -96,6 +96,6 @@ describe('DefaultTooltipContent', () => {
       ] as any,
     };
     const screen = await render(<DefaultTooltipContent {...mockPropsWithSparsePayload} />);
-    expect(screen.getByCSS('li.recharts-tooltip-item').elements()).toHaveLength(2);
+    await expect(screen.getByCSS('div.recharts-default-tooltip')).toMatchScreenshot();
   });
 });

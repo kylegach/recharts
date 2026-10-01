@@ -2,12 +2,13 @@ import { describe, it, beforeEach } from 'vitest';
 import React from 'react';
 import { BarChart, YAxis, XAxis, Tooltip, Bar } from '../../../src';
 import { PageData } from '../../_data';
-import { expectTooltipNotVisible, expectTooltipPayload, showTooltip } from '../../helper/browser/tooltipTestHelpers';
+import { expectTooltipNotVisible, showTooltip } from '../../helper/browser/tooltipTestHelpers';
 import { barChartMouseHoverTooltipSelector } from './tooltipMouseHoverSelectors';
 import { mockGetBoundingClientRect } from '../../helper/mockGetBoundingClientRect';
 import { createSelectorTestCase } from '../../helper/browser/createSelectorTestCase';
 import { selectTooltipPayload } from '../../../src/state/selectors/selectors';
 import { expectLastCalledWith } from '../../helper/expectLastCalledWith';
+import { expectTooltipScreenshot } from '../../helper/browser/screenshot';
 
 describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/issues/5658', () => {
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
 
       await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'ultraviolet : FORMATTED']);
+      await expectTooltipScreenshot(container);
     });
 
     it('should select payload', async () => {
@@ -123,7 +124,7 @@ describe('Tooltip.formatter reproducing https://github.com/recharts/recharts/iss
 
       await showTooltip(container, barChartMouseHoverTooltipSelector);
 
-      await expectTooltipPayload(container, 'Page B', ['pv : FORMATTED', 'FORMATTED']);
+      await expectTooltipScreenshot(container);
     });
 
     it('should select payload', async () => {
