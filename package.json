@@ -60,7 +60,7 @@
     "storybook": "npx storybook dev -p 6006 -c storybook",
     "build-storybook": "npx storybook build -o storybook/public -c storybook",
     "chromatic": "npx chromatic",
-    "chromatic-vitest": "chromatic --vitest --only-changed --project-token=chpt_1a9e0502f985538",
+    "chromatic-vitest": "chromatic --vitest --only-changed --project-token=<TOKEN>",
     "test-build-output": "vitest run --project build-output --config vitest.config.mts",
     "test-storybook": "vitest --config vitest.config.mts --project storybook",
     "test-vr:prepare": "npm run build && docker compose up -d --build",
